@@ -61,19 +61,23 @@ void process_instruction() {
             //   bits[31] sf=1, bit[30] op=0, bit[29] S=1,
             //   bit[22] is a shift flag, bits[21:10] immediate (imm12),
             //   bits[9:5] Rn, bits[4:0] Rd.
-            uint32_t imm12 = (inst >> 10) & 0xFFF;
+            uint64_t imm12 = (inst >> 10) & 0xFFF;
             uint32_t shift = (inst >> 22) & 0x1;
-            if (shift)
-                imm12 = imm12 << 12; // if shift==1, immediate is scaled by 4096
             uint32_t Rd = inst & 0x1F;
             uint32_t Rn = (inst >> 5) & 0x1F;
-            int64_t op1 = CURRENT_STATE.REGS[Rn];
+            if (shift)
+                imm12 = imm12 << 12; // if shift==1, immediate is scaled by 4096
+            int64_t op1 = (Rn == 31) ? CURRENT_STATE.REGS[31] : CURRENT_STATE.REGS[Rn];
             int64_t result = op1 + imm12;
-            NEXT_STATE.REGS[Rd] = result;
+            if (Rd == 31) {
+                NEXT_STATE.REGS[31] = result;
+            } else {
+                NEXT_STATE.REGS[Rd] = result;
+            }
             update_flags(result);
             break;
         }
-        case 0xB9: { 
+        case 0xAB: { 
             // ADDS Extended Register (shifted register): adds Xd, Xn, Xm{, LSL #shift}
             // Format (AArch64 ADD (shifted register) with flags):
             //   bits[31] sf=1, bit[30] op=0, bit[29] S=1,
