@@ -19,6 +19,8 @@ void process_instruction() {
 
     // Extract the top 8 bits to use as the opcode.
     uint32_t opcode = (inst >> 24) & 0xFF;
+    // Print the opcode for debugging purposes.
+    printf("Opcode: 0x%02x\n", opcode);
 
     // For clarity, note that in this updated version the opcode values have been chosen
     // to roughly match the fixed AArch64 encoding fields when always operating with sf=1.
@@ -300,7 +302,6 @@ void process_instruction() {
         default:
             // If the instruction is not implemented, print a message and halt simulation.
             printf("Instruction not implemented: 0x%08x\n", inst);
-            RUN_BIT = 0;
             break;
     }
 }
