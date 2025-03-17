@@ -232,7 +232,7 @@ void process_instruction() {
             uint32_t Rn = (inst >> 5) & 0x1F;
             uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;
             uint64_t value = CURRENT_STATE.REGS[Rt];  // 64-bit value (sf=1)
-            mem_write_64(addr, value);
+            mem_write_32(addr, value);
             break;
         }
         case 0xFA: { 
@@ -243,7 +243,7 @@ void process_instruction() {
             uint32_t Rt = inst & 0x1F;
             uint32_t Rn = (inst >> 5) & 0x1F;
             uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;
-            uint64_t value = mem_read_64(addr);
+            uint64_t value = mem_read_32(addr);
             NEXT_STATE.REGS[Rt] = value;
             break;
         }
