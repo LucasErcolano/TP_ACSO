@@ -1,20 +1,114 @@
-// sim.c
 #include "shell.h"
 #include <stdio.h>
 #include <stdint.h>
 
-// Helper function to update the NZ flags (assumes C and V remain 0)
 static void update_flags(int64_t result) {
-    NEXT_STATE.FLAG_Z = (result == 0);
+    NEXT_STATE.FLAG_Z = (result == 0);   
     NEXT_STATE.FLAG_N = (result < 0);
+    //CURRENT_STATE.FLAG_N = (result >> 63) & 1; ?
+    //current o next flag?
 }
 
-// process_instruction() is called by the shell to simulate execution of a single instruction.
+// Helper function: Extend a 64-bit value based on the option and apply left shift by imm3.
+static inline uint64_t extend_register(uint64_t value, int option, int imm3) {
+    uint64_t result;
+    switch (option) {
+        case 0: // UXTB: extract 8 bits, zero-extend
+            result = value & 0xFF;
+            break;
+        case 1: // UXTH: extract 16 bits, zero-extend
+            result = value & 0xFFFF;
+            break;
+        case 2: // UXTW: extract 32 bits, zero-extend
+            result = value & 0xFFFFFFFF;
+            break;
+        case 3: // UXTX: no extension needed
+            result = value;
+            break;
+        case 4: { // SXTB: extract 8 bits, sign-extend
+            int8_t tmp = value & 0xFF;
+            result = (uint64_t)tmp;
+            break;
+        }
+        case 5: { // SXTH: extract 16 bits, sign-extend
+            int16_t tmp = value & 0xFFFF;
+            result = (uint64_t)tmp;
+            break;
+        }
+        case 6: { // SXTW: extract 32 bits, sign-extend
+            int32_t tmp = value & 0xFFFFFFFF;
+            result = (uint64_t)tmp;
+            break;
+        }
+        case 7: // SXTX: no extension needed (already 64 bits)
+            result = value;
+            break;
+        default:
+            result = value;
+            break;
+    }
+    return result << imm3;
+}
+
+void execute_ADDS_immediate(int d, int n, uint32_t imm12, int shift) {
+    uint64_t operand1 = (n == 31) ? CURRENT_STATE.REGS[31] : CURRENT_STATE.REGS[n];
+    uint64_t imm = (shift == 1) ? (imm12 << 12) : imm12;
+    uint64_t result = operand1 + imm;
+    
+    update_flags(result);
+    CURRENT_STATE.REGS[d] = result;
+}
+
+void execute_ADDS_extended(int d, int n, int m, int option, int imm3) {
+    uint64_t operand1 = (n == 31) ? CURRENT_STATE.REGS[31] : CURRENT_STATE.REGS[n];
+    uint64_t operand2 = extend_register(CURRENT_STATE.REGS[m], option, imm3);
+    uint64_t result = operand1 + operand2;
+    
+    update_flags(result);
+    CURRENT_STATE.REGS[d] = result;
+}
+
+void execute_SUBS_immediate(int d, int n, uint32_t imm12, int shift) {
+    uint64_t operand1 = (n == 31) ? CURRENT_STATE.REGS[31] : CURRENT_STATE.REGS[n];
+    uint64_t imm;
+    
+    // Decode the immediate value based on the shift flag.
+    if (shift == 0) {
+        imm = imm12;
+    } else if (shift == 1) {
+        imm = imm12 << 12;
+    } else {
+        // Reserved shift value; handle as needed (here, default to 0).
+        imm = 0;
+    }
+    
+    // Compute subtraction via two's complement:
+    //   result = operand1 - imm = operand1 + (~imm) + 1
+    uint64_t result = operand1 + (~imm) + 1;
+    
+    update_flags(result);
+    CURRENT_STATE.REGS[d] = result;
+}
+
+void execute_SUBS_extended(int d, int n, int m, int option, int imm3) {
+    // Read operand1; use SP (assumed stored in REGS[31]) if n==31.
+    uint64_t operand1 = (n == 31) ? CURRENT_STATE.REGS[31] : CURRENT_STATE.REGS[n];
+    // Compute the extended value from register m.
+    uint64_t operand2 = extend_register(CURRENT_STATE.REGS[m], option, imm3);
+    // For subtraction, compute operand1 - operand2 as:
+    //   operand1 + (~operand2) + 1
+    uint64_t result = operand1 + (~operand2) + 1;
+    
+    // Update flags: N is the most-significant bit and Z is set if result==0.
+    update_flags(result);
+
+    // Write the result to the destination register.
+    CURRENT_STATE.REGS[d] = result;
+}
+
 void process_instruction() {
-    // Read the 32-bit instruction from memory at the current PC.
     uint32_t inst = mem_read_32(CURRENT_STATE.PC);
 
-    // By default, advance PC by 4 bytes.
     NEXT_STATE.PC = CURRENT_STATE.PC + 4;
 
     // Extract the top 8 bits to use as the opcode.
@@ -22,103 +116,51 @@ void process_instruction() {
     // Print the opcode for debugging purposes.
     printf("Opcode: 0x%02x\n", opcode);
 
-    // For clarity, note that in this updated version the opcode values have been chosen
-    // to roughly match the fixed AArch64 encoding fields when always operating with sf=1.
-    // The mapping used here is as follows (original -> new):
-    //   HLT                0x6A2 -> 0xD4
-    //   ADDS Immediate     0x450 -> 0xB1
-    //   ADDS Reg (extended)0x458 -> 0xB9
-    //   SUBS Immediate     0x650 -> 0xF1
-    //   SUBS Reg (extended)0x658 -> 0xF9
-    //   CMP Reg            0x3B0 -> 0x79   (alias for SUBS with Rd==XZR)
-    //   ANDS Shifted Reg   0x1A0 -> 0xA0
-    //   EOR Shifted Reg    0x1A1 -> 0xA1
-    //   ORR Shifted Reg    0x1A2 -> 0xA2
-    //   B (unconditional)  0x0A0 -> 0x14
-    //   BR                 0x0A1 -> 0xD6
-    //   BEQ                0x0A2 -> 0x54
-    //   BNE                0x0A3 -> 0x55
-    //   LSL Immediate      0x5B0 -> 0xD0
-    //   LSR Immediate      0x5B1 -> 0xD1
-    //   STUR (store)       0x7B0 -> 0xF8
-    //   LDUR (load)        0x7B3 -> 0xFA
-    //   MOVZ Immediate     0x2B0 -> 0xD2
-    //   MUL                0x2F0 -> 0x9B
-    //   CBZ                0x4B0 -> 0xB4
-    //   CBNZ               0x4B1 -> 0xB5
-
     switch (opcode) {
-        // --- Exception / system instructions ---
         case 0xD4: { // HLT: halt simulation.
             RUN_BIT = 0;
             break;
         }
         
-        // --- Arithmetic instructions with flag update ---
-        case 0xB1: { 
-            // ADDS Immediate: adds Xd, Xn, #imm{, LSL #12}
-            // Format (AArch64 ADD immediate with flags):
-            //   bits[31] sf=1, bit[30] op=0, bit[29] S=1,
-            //   bit[22] is a shift flag, bits[21:10] immediate (imm12),
-            //   bits[9:5] Rn, bits[4:0] Rd.
+        case 0xB1: {  // ADDS immediate 
             uint64_t imm12 = (inst >> 10) & 0xFFF;
             uint32_t shift = (inst >> 22) & 0x1;
             uint32_t Rd = inst & 0x1F;
             uint32_t Rn = (inst >> 5) & 0x1F;
-            if (shift)
-                imm12 = imm12 << 12; // if shift==1, immediate is scaled by 4096
-            int64_t op1 = (Rn == 31) ? CURRENT_STATE.REGS[31] : CURRENT_STATE.REGS[Rn];
-            int64_t result = op1 + imm12;
-            if (Rd == 31) {
-                NEXT_STATE.REGS[31] = result;
-            } else {
-                NEXT_STATE.REGS[Rd] = result;
-            }
-            update_flags(result);
+            execute_ADDS_immediate(Rd, Rn, imm12, shift);
             break;
         }
-        case 0xAB: { 
-            // ADDS Extended Register (shifted register): adds Xd, Xn, Xm{, LSL #shift}
-            // Format (AArch64 ADD (shifted register) with flags):
-            //   bits[31] sf=1, bit[30] op=0, bit[29] S=1,
-            //   bits[4:0] Rd, bits[9:5] Rn, bits[20:16] Rm.
-            uint32_t Rd = inst & 0x1F;
-            uint32_t Rn = (inst >> 5) & 0x1F;
-            uint32_t Rm = (inst >> 16) & 0x1F;
-            // (For simplicity, we assume the shift amount is 0.)
-            int64_t op1 = CURRENT_STATE.REGS[Rn];
-            int64_t op2 = CURRENT_STATE.REGS[Rm];
-            int64_t result = op1 + op2;
-            NEXT_STATE.REGS[Rd] = result;
-            update_flags(result);
+
+        case 0xAB: { // ADDS Extended Register
+            uint32_t Rd     = inst & 0x1F;
+            uint32_t Rn     = (inst >> 5) & 0x1F;
+            uint32_t imm3   = (inst >> 10) & 0x7;
+            uint32_t option = (inst >> 13) & 0x7;
+            uint32_t Rm     = (inst >> 16) & 0x1F;
+            // Call the helper for ADDS (extended register)
+            execute_ADDS_extended(Rd, Rn, Rm, option, imm3);
             break;
         }
-        case 0xF1: { 
-            // SUBS Immediate: subs Xd, Xn, #imm{, LSL #12}
-            uint32_t imm12 = (inst >> 10) & 0xFFF;
+
+        case 0xF1: { // SUBS immediate
+            uint64_t imm12 = (inst >> 10) & 0xFFF;
             uint32_t shift = (inst >> 22) & 0x1;
-            if (shift)
-                imm12 = imm12 << 12;
             uint32_t Rd = inst & 0x1F;
             uint32_t Rn = (inst >> 5) & 0x1F;
-            int64_t op1 = CURRENT_STATE.REGS[Rn];
-            int64_t result = op1 - imm12;
-            NEXT_STATE.REGS[Rd] = result;
-            update_flags(result);
+            execute_SUBS_immediate(Rd, Rn, imm12, shift);
             break;
         }
-        case 0xF9: { 
-            // SUBS Extended Register: subs Xd, Xn, Xm
-            uint32_t Rd = inst & 0x1F;
-            uint32_t Rn = (inst >> 5) & 0x1F;
-            uint32_t Rm = (inst >> 16) & 0x1F;
-            int64_t op1 = CURRENT_STATE.REGS[Rn];
-            int64_t op2 = CURRENT_STATE.REGS[Rm];
-            int64_t result = op1 - op2;
-            NEXT_STATE.REGS[Rd] = result;
-            update_flags(result);
+
+        case 0xEB: { // SUBS Extended Register
+            uint32_t Rd     = inst & 0x1F;
+            uint32_t Rn     = (inst >> 5) & 0x1F;
+            uint32_t imm3   = (inst >> 10) & 0x7;
+            uint32_t option = (inst >> 13) & 0x7;
+            uint32_t Rm     = (inst >> 16) & 0x1F;
+            execute_SUBS_extended(Rd, Rn, Rm, option, imm3);
             break;
         }
+
         case 0x79: { 
             // CMP Extended Register: cmp Xn, Xm (alias for SUBS with Rd==XZR)
             // Only update flags.
