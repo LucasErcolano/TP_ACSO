@@ -106,6 +106,7 @@ void execute_SUBS_extended(int d, int n, int m, int option, int imm3) {
     CURRENT_STATE.REGS[d] = result;
 }
 
+
 void process_instruction() {
     uint32_t inst = mem_read_32(CURRENT_STATE.PC);
 
@@ -161,7 +162,7 @@ void process_instruction() {
             break;
         }
 
-        case 0x71: { // CMP immediate
+        case 0xF11: { // CMP immediate
             uint32_t shift = (inst >> 22) & 0x3;
             uint32_t imm12 = (inst >> 10) & 0xFFF;
             uint8_t rn     = (inst >> 5)  & 0x1F;
@@ -175,7 +176,7 @@ void process_instruction() {
             break;
         } 
 
-        case 857: {  // CMP Extended Register
+        case 0xEB1: {  // CMP Extended Register
             uint8_t rm     = (inst >> 16) & 0x1F;
             uint8_t option = (inst >> 13) & 0x7;
             uint8_t imm3   = (inst >> 10) & 0x7;
