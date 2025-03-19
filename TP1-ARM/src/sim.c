@@ -117,7 +117,6 @@ void process_instruction() {
     NEXT_STATE.PC = CURRENT_STATE.PC + 4;
 
     uint32_t opcode8 = (inst >> 24) & 0xFF;
-    printf("Opcode: 0x%02x\n", opcode8);
 
     switch (opcode8) { 
         case 0xD4: { // HLT: halt simulation.
@@ -271,6 +270,9 @@ void process_instruction() {
             //branch_taken = 1;
             break;
         }
+        default:
+        printf("Instruction not implemented: 0x%08x\n", inst);
+        break;
     }
 
     uint32_t opcode16 = (inst >> 10) & 0xFFFF;    
@@ -282,12 +284,11 @@ void process_instruction() {
             CURRENT_STATE.PC = target;
             //branch_taken = 1;
             break;
-        default:
-            printf("Instruction not implemented: 0x%08x\n", inst);
-            break;    
         }
+        default:
+        printf("Instruction not implemented: 0x%08x\n", inst);
+        break;
     }
-
     uint32_t opcode11 = (inst >> 21) & 0x7FF;
     switch (opcode11) {
         case 0x7C0: {  // STUR
@@ -374,6 +375,9 @@ void process_instruction() {
             CURRENT_STATE.REGS[Rt] = (uint64_t)value;
             break;
         }
+        default:
+            printf("Instruction not implemented: 0x%08x\n", inst);
+            break;
         
     }
 
