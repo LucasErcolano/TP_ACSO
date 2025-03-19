@@ -117,7 +117,7 @@ void process_instruction() {
     NEXT_STATE.PC = CURRENT_STATE.PC + 4;
 
     uint32_t opcode8 = (inst >> 24) & 0xFF;
-    printf("Opcode: 0x%02x\n", opcode);
+    printf("Opcode: 0x%02x\n", opcode8);
 
     switch (opcode8) { 
         case 0xD4: { // HLT: halt simulation.
@@ -332,6 +332,49 @@ void process_instruction() {
         
             break;
         }
+
+        case 0x7C2: {  // LDUR
+            int32_t imm9 = (inst >> 12) & 0x1FF;
+            int32_t Rn = (inst >> 5) & 0x1F;    
+            int32_t Rt = inst & 0x1F;           
+        
+            imm9 = sign_extend(imm9, 64); 
+        
+            uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9; 
+            uint64_t value = mem_read_64(addr);          
+        
+            CURRENT_STATE.REGS[Rt] = value;
+            break;
+        }
+
+        case 0x1C2: {  // LDURB
+            int32_t imm9 = (inst >> 12) & 0x1FF;
+            int32_t Rn = (inst >> 5) & 0x1F;    
+            int32_t Rt = inst & 0x1F;           
+        
+            imm9 = sign_extend(imm9, 64); 
+        
+            uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9; 
+            uint8_t value = mem_read_8(addr);             
+        
+            CURRENT_STATE.REGS[Rt] = (uint64_t)value; 
+            break;
+        }
+        
+        case 0x5C2: {  // LDURH
+            int32_t imm9 = (inst >> 12) & 0x1FF;
+            int32_t Rn = (inst >> 5) & 0x1F;
+            int32_t Rt = inst & 0x1F;
+        
+            imm9 = sign_extend(imm9, 64);
+        
+            uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;
+            uint16_t value = mem_read_16(addr);
+        
+            CURRENT_STATE.REGS[Rt] = (uint64_t)value;
+            break;
+        }
+        
     }
 
 }
