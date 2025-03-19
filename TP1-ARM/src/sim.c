@@ -116,12 +116,10 @@ void process_instruction() {
 
     NEXT_STATE.PC = CURRENT_STATE.PC + 4;
 
-    // Extract the top 8 bits to use as the opcode.
-    uint32_t opcode = (inst >> 24) & 0xFF;
-    // Print the opcode for debugging purposes.
+    uint32_t opcode8 = (inst >> 24) & 0xFF;
     printf("Opcode: 0x%02x\n", opcode);
 
-    switch (opcode) {
+    switch (opcode8) { 
         case 0xD4: { // HLT: halt simulation.
             RUN_BIT = 0;
             break;
@@ -147,53 +145,46 @@ void process_instruction() {
             break;
         }
 
-        case 0xF1: { // SUBS immediate
+        case 0xF1: { // SUBS/CMP immediate
             uint64_t imm12 = (inst >> 10) & 0xFFF;
-            uint32_t shift = (inst >> 22) & 0x1;
+            uint32_t shift = (inst >> 22) & 0x3;
             uint32_t Rd = inst & 0x1F;
             uint32_t Rn = (inst >> 5) & 0x1F;
-            execute_SUBS_immediate(Rd, Rn, imm12, shift);
-            break;
-        }
-
-        case 0xEB: { // SUBS Extended Register
-            uint32_t Rd     = inst & 0x1F;
-            uint32_t Rn     = (inst >> 5) & 0x1F;
-            uint32_t imm3   = (inst >> 10) & 0x7;
-            uint32_t option = (inst >> 13) & 0x7;
-            uint32_t Rm     = (inst >> 16) & 0x1F;
-            execute_SUBS_extended(Rd, Rn, Rm, option, imm3);
-            break;
-        }
-
-        case 0xF11: { // CMP immediate
-            uint32_t shift = (inst >> 22) & 0x3;
-            uint32_t imm12 = (inst >> 10) & 0xFFF;
-            uint8_t rn     = (inst >> 5)  & 0x1F;
+            uint64_t operand1 = (Rn == 31) ? SP : CURRENT_STATE.REGS[Rn];
+            uint64_t operand2;
             
-            uint64_t operand1 = CURRENT_STATE.REGS[rn];
-            uint64_t operand2 = imm12;
-            if (shift == 1)
+            if (shift == 0) {
+                operand2 = imm12;
+            } else if (shift == 1) {
                 operand2 = imm12 << 12;
-            int64_t result = operand1 - operand2;
+            } else {
+                return;
+            }
+            uint64_t result = operand1 - operand2;
             update_flags(result);
+            if (Rd != 31) {
+                CURRENT_STATE.REGS[Rd] = result;
+            }
             break;
-        } 
-
-        case 0xEB1: {  // CMP Extended Register
-            uint8_t rm     = (inst >> 16) & 0x1F;
-            uint8_t option = (inst >> 13) & 0x7;
-            uint8_t imm3   = (inst >> 10) & 0x7;
-            uint8_t rn     = (inst >> 5)  & 0x1F;
-    
-            uint64_t operand1 = CURRENT_STATE.REGS[rn];
-            uint64_t operand2 = extend_register(CURRENT_STATE.REGS[rm], option, imm3);
-            int64_t result = operand1 - operand2;
-            update_flags(result);
+        }
+        
+        case 0xEB: { // SUBS/CMP Extended Register
+            uint32_t Rd = inst & 0x1F;
+            uint32_t Rn = (inst >> 5) & 0x1F;
+            uint32_t imm3 = (inst >> 10) & 0x7;
+            uint32_t option = (inst >> 13) & 0x7;
+            uint32_t Rm = (inst >> 16) & 0x1F;
+            
+            uint64_t operand1 = (Rn == 31) ? SP : CURRENT_STATE.REGS[Rn];
+            uint64_t operand2 = extend_register(CURRENT_STATE.REGS[Rm], option, imm3);
+            uint64_t result = operand1 - operand2;
+            update_flags(result);            
+            if (Rd != 31) {
+                CURRENT_STATE.REGS[Rd] = result;
+            }
             break;
         }
 
-        
         case 0xEA: { // ANDS (shifted register)
             uint8_t shift  = (inst >> 22) & 0x3;
             uint8_t rm     = (inst >> 16) & 0x1F;
@@ -223,18 +214,40 @@ void process_instruction() {
             break;
         }
         
-        case 0xA1: { 
-            // EOR Shifted Register: eor Xd, Xn, Xm
+        case 0xCA: { // EOR shifted register
             uint32_t Rd = inst & 0x1F;
             uint32_t Rn = (inst >> 5) & 0x1F;
+            uint32_t imm6 = (inst >> 10) & 0x3F;
             uint32_t Rm = (inst >> 16) & 0x1F;
-            int64_t op1 = CURRENT_STATE.REGS[Rn];
-            int64_t op2 = CURRENT_STATE.REGS[Rm];
-            NEXT_STATE.REGS[Rd] = op1 ^ op2;
+            uint32_t shift = (inst >> 22) & 0x3;
+            
+            uint64_t operand1 = CURRENT_STATE.REGS[Rn];
+            uint64_t operand2 = CURRENT_STATE.REGS[Rm];
+            switch (shift) {
+                case 0:
+                    operand2 = (imm6 == 0) ? operand2 : (operand2 << imm6);
+                    break;
+                case 1:
+                    operand2 = (imm6 == 0) ? operand2 : (operand2 >> imm6);
+                    break;
+                case 2:
+                    operand2 = (imm6 == 0) ? operand2 : ((int64_t)operand2 >> imm6);
+                    break;
+                case 3:
+                    if (imm6 == 0) {
+                        operand2 = operand2;
+                    } else {
+                        operand2 = (operand2 >> imm6) | (operand2 << (64 - imm6));
+                    }
+                    break;
+            }
+            uint64_t result = operand1 ^ operand2;
+            CURRENT_STATE.REGS[Rd] = result;
+            update_flags(result);
             break;
         }
-        case 0xAA: {  //1010 0010
-            // ORR Shifted Register: orr Xd, Xn, Xm
+
+        case 0xAA: { // ORR Shifted Register
             uint32_t Rd = inst & 0x1F;
             uint32_t Rn = (inst >> 5) & 0x1F;
             uint32_t Rm = (inst >> 16) & 0x1F;
@@ -243,23 +256,87 @@ void process_instruction() {
             NEXT_STATE.REGS[Rd] = op1 | op2;
             break;
         }
+        default:
+        printf("Instruction not implemented: 0x%08x\n", inst);
+        break;
+    }
+    
+    uint32_t opcode6 = (inst >> 26) & 0x3F;    
+    switch (opcode6) {
+        case 0x14: { // B
+            int32_t imm26 = inst & 0x3FFFFFF;
+            int64_t offset = ((int64_t)(imm26 << 6)) >> 4;
+            uint64_t target = CURRENT_STATE.PC + offset;
+            CURRENT_STATE.PC = target;
+            //branch_taken = 1;
+            break;
+        }
+    }
+
+    uint32_t opcode16 = (inst >> 10) & 0xFFFF;    
+    switch (opcode16) {
+        case 0xD61F: { // BR
+            uint32_t Rn = (inst >> 5) & 0x1F;
+            
+            uint64_t target = CURRENT_STATE.REGS[Rn];
+            CURRENT_STATE.PC = target;
+            //branch_taken = 1;
+            break;
+        default:
+            printf("Instruction not implemented: 0x%08x\n", inst);
+            break;    
+        }
+    }
+
+    uint32_t opcode11 = (inst >> 21) & 0x7FF;
+    switch (opcode11) {
+        case 0x7C0: {  // STUR
+            int32_t imm9 = (inst >> 12) & 0x1FF;
+            int32_t Rn = (inst >> 5) & 0x1F;
+            int32_t Rt = inst & 0x1F;
+
+            imm9 = sign_extend(imm9, 64);
         
-        // --- Branch instructions ---
-        case 0x14: { 
-            // B Unconditional: branch with immediate offset (imm26)
-            int32_t imm26 = inst & 0x03FFFFFF;
-            if (imm26 & (1 << 25))
-                imm26 |= 0xFC000000; // sign-extension from bit 25
-            int32_t offset = imm26 << 2;
-            NEXT_STATE.PC = CURRENT_STATE.PC + offset;
+            uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;
+            uint64_t value = CURRENT_STATE.REGS[Rt];
+            mem_write_64(addr, value);
             break;
         }
-        case 0xD6: { 
-            // BR: branch to address in register Xn
-            uint32_t Rn = inst & 0x1F;
-            NEXT_STATE.PC = CURRENT_STATE.REGS[Rn];
+
+        case 0x1C0: {  // STURB
+            int64_t imm9 = (inst >> 12) & 0x1FF; 
+            int64_t Rn = (inst >> 5) & 0x1F;     
+            int64_t Rt = inst & 0x1F;            
+        
+            imm9 = sign_extend(imm9, 64);
+        
+            uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;  
+            uint8_t value = (uint8_t) CURRENT_STATE.REGS[Rt];
+        
+            mem_write_8(addr, value);
+        
             break;
         }
+        
+        case 0x3C0: {  // STURH
+            int64_t imm9 = (inst >> 12) & 0x1FF; 
+            int64_t Rn = (inst >> 5) & 0x1F;     
+            int64_t Rt = inst & 0x1F;            
+        
+            imm9 = sign_extend(imm9, 64);
+        
+            uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;  
+            uint16_t value = (uint16_t) CURRENT_STATE.REGS[Rt];
+    
+            mem_write_16(addr, value);
+        
+            break;
+        }
+    }
+
+}
+    //uint32_t opcode3 = (inst >> 12) & 0xFFFF;
+    //switch (opcode3) {
         case 0x54: { 
             // BEQ: branch conditionally if Z==1
             int32_t imm19 = inst & 0x7FFFF; // 19-bit immediate
@@ -303,51 +380,23 @@ void process_instruction() {
         }
         
         // --- Load/Store instructions ---
-        case 0xF8: {  // STUR (Store Register Unscaled) //es mas largo es 1111 1000 000
+        case 0xF8: { 
+            // STUR: store register to memory: stur Xt, [Xn, #imm]
+            // Format (AArch64 STUR for 64-bit register):
+            //   bits[31:22] fixed, bits[21:12] immediate (signed 9-bit),
+            //   bits[9:5] Rn (base), bits[4:0] Rt.
+            // Here we assume the immediate is in bits [21:12] (9 bits) and is in bytes.
             int32_t imm9 = (inst >> 12) & 0x1FF;
-            int32_t Rn = (inst >> 5) & 0x1F;
-            int32_t Rt = inst & 0x1F;
-
-            imm9 = sign_extend(imm9, 64);
-        
+            // Sign-extend from bit 8 of the 9-bit field:
+            if (imm9 & (1 << 8))
+                imm9 |= 0xFFFFFE00;
+            uint32_t Rt = inst & 0x1F;
+            uint32_t Rn = (inst >> 5) & 0x1F;
             uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;
-            uint64_t value = CURRENT_STATE.REGS[Rt];
-            mem_write_64(addr, value);
+            uint64_t value = CURRENT_STATE.REGS[Rt];  // 64-bit value (sf=1)
+            mem_write_32(addr, value);
             break;
         }
-
-        case 0x38: {  // STURB x(Rt), [x(Rn), #imm9]
-            int64_t imm9 = (inst >> 12) & 0x1FF; 
-            int64_t Rn = (inst >> 5) & 0x1F;     
-            int64_t Rt = inst & 0x1F;            
-        
-            imm9 = sign_extend(imm9, 64);
-        
-            uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;  
-            uint8_t value = (uint8_t) CURRENT_STATE.REGS[Rt];
-        
-            mem_write_8(addr, value);
-        
-            break;
-        }
-        
-        case 0x78: {  // STURH x(Rt), [x(Rn), #imm9]
-            int64_t imm9 = (inst >> 12) & 0x1FF; 
-            int64_t Rn = (inst >> 5) & 0x1F;     
-            int64_t Rt = inst & 0x1F;            
-        
-            imm9 = sign_extend(imm9, 64);
-        
-            uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;  
-            uint16_t value = (uint16_t) CURRENT_STATE.REGS[Rt];
-        
-            mem_write_16(addr, value);
-        
-            break;
-        }
-        
-        
-        
         case 0xFA: { 
             // LDUR: load register from memory: ldur Xt, [Xn, #imm]
             int32_t imm9 = (inst >> 12) & 0x1FF;
@@ -414,5 +463,4 @@ void process_instruction() {
             // If the instruction is not implemented, print a message and halt simulation.
             printf("Instruction not implemented: 0x%08x\n", inst);
             break;
-    }
-}
+    //}
