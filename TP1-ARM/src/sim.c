@@ -161,7 +161,6 @@ void process_instruction() {
         } else {
             // Invalid shift, but marking as handled
             instruction_handled = 1;
-            break;
         }
         uint64_t result = operand1 - operand2;
         update_flags(result);
