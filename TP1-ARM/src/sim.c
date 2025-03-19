@@ -106,6 +106,10 @@ void execute_SUBS_extended(int d, int n, int m, int option, int imm3) {
     CURRENT_STATE.REGS[d] = result;
 }
 
+int64_t sign_extend(int64_t value, int bits) {
+    int64_t mask = (int64_t)1 << (bits - 1);
+    return (value ^ mask) - mask; 
+}
 
 void process_instruction() {
     uint32_t inst = mem_read_32(CURRENT_STATE.PC);
@@ -229,7 +233,7 @@ void process_instruction() {
             NEXT_STATE.REGS[Rd] = op1 ^ op2;
             break;
         }
-        case 0xA2: { 
+        case 0xAA: {  //1010 0010
             // ORR Shifted Register: orr Xd, Xn, Xm
             uint32_t Rd = inst & 0x1F;
             uint32_t Rn = (inst >> 5) & 0x1F;
@@ -299,23 +303,51 @@ void process_instruction() {
         }
         
         // --- Load/Store instructions ---
-        case 0xF8: { 
-            // STUR: store register to memory: stur Xt, [Xn, #imm]
-            // Format (AArch64 STUR for 64-bit register):
-            //   bits[31:22] fixed, bits[21:12] immediate (signed 9-bit),
-            //   bits[9:5] Rn (base), bits[4:0] Rt.
-            // Here we assume the immediate is in bits [21:12] (9 bits) and is in bytes.
+        case 0xF8: {  // STUR (Store Register Unscaled) //es mas largo es 1111 1000 000
             int32_t imm9 = (inst >> 12) & 0x1FF;
-            // Sign-extend from bit 8 of the 9-bit field:
-            if (imm9 & (1 << 8))
-                imm9 |= 0xFFFFFE00;
-            uint32_t Rt = inst & 0x1F;
-            uint32_t Rn = (inst >> 5) & 0x1F;
+            int32_t Rn = (inst >> 5) & 0x1F;
+            int32_t Rt = inst & 0x1F;
+
+            imm9 = sign_extend(imm9, 64);
+        
             uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;
-            uint64_t value = CURRENT_STATE.REGS[Rt];  // 64-bit value (sf=1)
-            mem_write_32(addr, value);
+            uint64_t value = CURRENT_STATE.REGS[Rt];
+            mem_write_64(addr, value);
             break;
         }
+
+        case 0x38: {  // STURB x(Rt), [x(Rn), #imm9]
+            int64_t imm9 = (inst >> 12) & 0x1FF; 
+            int64_t Rn = (inst >> 5) & 0x1F;     
+            int64_t Rt = inst & 0x1F;            
+        
+            imm9 = sign_extend(imm9, 64);
+        
+            uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;  
+            uint8_t value = (uint8_t) CURRENT_STATE.REGS[Rt];
+        
+            mem_write_8(addr, value);
+        
+            break;
+        }
+        
+        case 0x78: {  // STURH x(Rt), [x(Rn), #imm9]
+            int64_t imm9 = (inst >> 12) & 0x1FF; 
+            int64_t Rn = (inst >> 5) & 0x1F;     
+            int64_t Rt = inst & 0x1F;            
+        
+            imm9 = sign_extend(imm9, 64);
+        
+            uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;  
+            uint16_t value = (uint16_t) CURRENT_STATE.REGS[Rt];
+        
+            mem_write_16(addr, value);
+        
+            break;
+        }
+        
+        
+        
         case 0xFA: { 
             // LDUR: load register from memory: ldur Xt, [Xn, #imm]
             int32_t imm9 = (inst >> 12) & 0x1FF;
