@@ -91,7 +91,7 @@ void execute_SUBS_immediate(int d, int n, uint32_t imm12, int shift) {
 }
 
 void execute_SUBS_extended(int d, int n, int m, int option, int imm3) {
-    // Read operand1; use SP (assumed stored in REGS[31]) if n==31.
+    // Read operand1; use CURRENT_STATE.REGS[31] (assumed stored in REGS[31]) if n==31.
     uint64_t operand1 = (n == 31) ? CURRENT_STATE.REGS[31] : CURRENT_STATE.REGS[n];
     // Compute the extended value from register m.
     uint64_t operand2 = extend_register(CURRENT_STATE.REGS[m], option, imm3);
@@ -150,7 +150,7 @@ void process_instruction() {
             uint32_t shift = (inst >> 22) & 0x3;
             uint32_t Rd = inst & 0x1F;
             uint32_t Rn = (inst >> 5) & 0x1F;
-            uint64_t operand1 = (Rn == 31) ? SP : CURRENT_STATE.REGS[Rn];
+            uint64_t operand1 = (Rn == 31) ? CURRENT_STATE.REGS[31] : CURRENT_STATE.REGS[Rn];
             uint64_t operand2;
             
             if (shift == 0) {
@@ -175,7 +175,7 @@ void process_instruction() {
             uint32_t option = (inst >> 13) & 0x7;
             uint32_t Rm = (inst >> 16) & 0x1F;
             
-            uint64_t operand1 = (Rn == 31) ? SP : CURRENT_STATE.REGS[Rn];
+            uint64_t operand1 = (Rn == 31) ? CURRENT_STATE.REGS[31] : CURRENT_STATE.REGS[Rn];
             uint64_t operand2 = extend_register(CURRENT_STATE.REGS[Rm], option, imm3);
             uint64_t result = operand1 - operand2;
             update_flags(result);            
@@ -288,93 +288,93 @@ void process_instruction() {
         }
     }
 
-    uint32_t opcode11 = (inst >> 21) & 0x7FF;
-    switch (opcode11) {
-        case 0x7C0: {  // STUR
-            int32_t imm9 = (inst >> 12) & 0x1FF;
-            int32_t Rn = (inst >> 5) & 0x1F;
-            int32_t Rt = inst & 0x1F;
+    // uint32_t opcode11 = (inst >> 21) & 0x7FF;
+    // switch (opcode11) {
+    //     case 0x7C0: {  // STUR
+    //         int32_t imm9 = (inst >> 12) & 0x1FF;
+    //         int32_t Rn = (inst >> 5) & 0x1F;
+    //         int32_t Rt = inst & 0x1F;
 
-            imm9 = sign_extend(imm9, 64);
+    //         imm9 = sign_extend(imm9, 64);
         
-            uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;
-            uint64_t value = CURRENT_STATE.REGS[Rt];
-            mem_write_64(addr, value);
-            break;
-        }
+    //         uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;
+    //         uint64_t value = CURRENT_STATE.REGS[Rt];
+    //         mem_write_64(addr, value);
+    //         break;
+    //     }
 
-        case 0x1C0: {  // STURB
-            int64_t imm9 = (inst >> 12) & 0x1FF; 
-            int64_t Rn = (inst >> 5) & 0x1F;     
-            int64_t Rt = inst & 0x1F;            
+    //     case 0x1C0: {  // STURB
+    //         int64_t imm9 = (inst >> 12) & 0x1FF; 
+    //         int64_t Rn = (inst >> 5) & 0x1F;     
+    //         int64_t Rt = inst & 0x1F;            
         
-            imm9 = sign_extend(imm9, 64);
+    //         imm9 = sign_extend(imm9, 64);
         
-            uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;  
-            uint8_t value = (uint8_t) CURRENT_STATE.REGS[Rt];
+    //         uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;  
+    //         uint8_t value = (uint8_t) CURRENT_STATE.REGS[Rt];
         
-            mem_write_8(addr, value);
+    //         mem_write_8(addr, value);
         
-            break;
-        }
+    //         break;
+    //     }
         
-        case 0x3C0: {  // STURH
-            int64_t imm9 = (inst >> 12) & 0x1FF; 
-            int64_t Rn = (inst >> 5) & 0x1F;     
-            int64_t Rt = inst & 0x1F;            
+    //     case 0x3C0: {  // STURH
+    //         int64_t imm9 = (inst >> 12) & 0x1FF; 
+    //         int64_t Rn = (inst >> 5) & 0x1F;     
+    //         int64_t Rt = inst & 0x1F;            
         
-            imm9 = sign_extend(imm9, 64);
+    //         imm9 = sign_extend(imm9, 64);
         
-            uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;  
-            uint16_t value = (uint16_t) CURRENT_STATE.REGS[Rt];
+    //         uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;  
+    //         uint16_t value = (uint16_t) CURRENT_STATE.REGS[Rt];
     
-            mem_write_16(addr, value);
+    //         mem_write_16(addr, value);
         
-            break;
-        }
+    //         break;
+    //     }
 
-        case 0x7C2: {  // LDUR
-            int32_t imm9 = (inst >> 12) & 0x1FF;
-            int32_t Rn = (inst >> 5) & 0x1F;    
-            int32_t Rt = inst & 0x1F;           
+    //     case 0x7C2: {  // LDUR
+    //         int32_t imm9 = (inst >> 12) & 0x1FF;
+    //         int32_t Rn = (inst >> 5) & 0x1F;    
+    //         int32_t Rt = inst & 0x1F;           
         
-            imm9 = sign_extend(imm9, 64); 
+    //         imm9 = sign_extend(imm9, 64); 
         
-            uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9; 
-            uint64_t value = mem_read_64(addr);          
+    //         uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9; 
+    //         uint64_t value = mem_read_64(addr);          
         
-            CURRENT_STATE.REGS[Rt] = value;
-            break;
-        }
+    //         CURRENT_STATE.REGS[Rt] = value;
+    //         break;
+    //     }
 
-        case 0x1C2: {  // LDURB
-            int32_t imm9 = (inst >> 12) & 0x1FF;
-            int32_t Rn = (inst >> 5) & 0x1F;    
-            int32_t Rt = inst & 0x1F;           
+    //     case 0x1C2: {  // LDURB
+    //         int32_t imm9 = (inst >> 12) & 0x1FF;
+    //         int32_t Rn = (inst >> 5) & 0x1F;    
+    //         int32_t Rt = inst & 0x1F;           
         
-            imm9 = sign_extend(imm9, 64); 
+    //         imm9 = sign_extend(imm9, 64); 
         
-            uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9; 
-            uint8_t value = mem_read_8(addr);             
+    //         uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9; 
+    //         uint8_t value = mem_read_8(addr);             
         
-            CURRENT_STATE.REGS[Rt] = (uint64_t)value; 
-            break;
-        }
+    //         CURRENT_STATE.REGS[Rt] = (uint64_t)value; 
+    //         break;
+    //     }
+
+    //     case 0x5C2: {  // LDURH
+    //         int32_t imm9 = (inst >> 12) & 0x1FF;
+    //         int32_t Rn = (inst >> 5) & 0x1F;
+    //         int32_t Rt = inst & 0x1F;
         
-        case 0x5C2: {  // LDURH
-            int32_t imm9 = (inst >> 12) & 0x1FF;
-            int32_t Rn = (inst >> 5) & 0x1F;
-            int32_t Rt = inst & 0x1F;
+    //         imm9 = sign_extend(imm9, 64);
         
-            imm9 = sign_extend(imm9, 64);
+    //         uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;
+    //         uint16_t value = mem_read_16(addr);
         
-            uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;
-            uint16_t value = mem_read_16(addr);
+    //         CURRENT_STATE.REGS[Rt] = (uint64_t)value;
+    //         break;
+    //     }
         
-            CURRENT_STATE.REGS[Rt] = (uint64_t)value;
-            break;
-        }
-        
-    }
+    // }
 
 }
