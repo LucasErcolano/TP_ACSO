@@ -161,31 +161,63 @@ void process_instruction() {
             break;
         }
 
-        case 0x79: { 
-            // CMP Extended Register: cmp Xn, Xm (alias for SUBS with Rd==XZR)
-            // Only update flags.
-            uint32_t Rn = (inst >> 5) & 0x1F;
-            uint32_t Rm = (inst >> 16) & 0x1F;
-            int64_t op1 = CURRENT_STATE.REGS[Rn];
-            int64_t op2 = CURRENT_STATE.REGS[Rm];
-            int64_t result = op1 - op2;
+        case 0x71: { // CMP immediate
+            uint32_t shift = (inst >> 22) & 0x3;
+            uint32_t imm12 = (inst >> 10) & 0xFFF;
+            uint8_t rn     = (inst >> 5)  & 0x1F;
+            
+            uint64_t operand1 = CURRENT_STATE.REGS[rn];
+            uint64_t operand2 = imm12;
+            if (shift == 1)
+                operand2 = imm12 << 12;
+            int64_t result = operand1 - operand2;
             update_flags(result);
+            break;
+        } 
+
+        case 857: {  // CMP Extended Register
+            uint8_t rm     = (inst >> 16) & 0x1F;
+            uint8_t option = (inst >> 13) & 0x7;
+            uint8_t imm3   = (inst >> 10) & 0x7;
+            uint8_t rn     = (inst >> 5)  & 0x1F;
+    
+            uint64_t operand1 = CURRENT_STATE.REGS[rn];
+            uint64_t operand2 = extend_register(CURRENT_STATE.REGS[rm], option, imm3);
+            int64_t result = operand1 - operand2;
+            update_flags(result);
+            break;
+        }
+
+        
+        case 0xEA: { // ANDS (shifted register)
+            uint8_t shift  = (inst >> 22) & 0x3;
+            uint8_t rm     = (inst >> 16) & 0x1F;
+            uint8_t imm6   = (inst >> 10) & 0x3F;
+            uint8_t rn     = (inst >> 5)  & 0x1F;
+            uint8_t rd     = inst & 0x1F;
+        
+            uint64_t operand1 = CURRENT_STATE.REGS[rn];
+            uint64_t operand2 = CURRENT_STATE.REGS[rm];
+            switch (shift) {
+                case 0:
+                    operand2 = operand2 << imm6;
+                    break;
+                case 1:
+                    operand2 = operand2 >> imm6;
+                    break;
+                case 2:
+                    operand2 = ((int64_t)operand2) >> imm6;
+                    break;
+                case 3:
+                    operand2 = (operand2 >> imm6) | (operand2 << (64 - imm6));
+                    break;
+            }
+            uint64_t result = operand1 & operand2;
+            update_flags(result);
+            NEXT_STATE.REGS[rd] = result;
             break;
         }
         
-        // --- Logical instructions ---
-        case 0xA0: { 
-            // ANDS Shifted Register: ands Xd, Xn, Xm
-            uint32_t Rd = inst & 0x1F;
-            uint32_t Rn = (inst >> 5) & 0x1F;
-            uint32_t Rm = (inst >> 16) & 0x1F;
-            int64_t op1 = CURRENT_STATE.REGS[Rn];
-            int64_t op2 = CURRENT_STATE.REGS[Rm];
-            int64_t result = op1 & op2;
-            NEXT_STATE.REGS[Rd] = result;
-            update_flags(result);
-            break;
-        }
         case 0xA1: { 
             // EOR Shifted Register: eor Xd, Xn, Xm
             uint32_t Rd = inst & 0x1F;
