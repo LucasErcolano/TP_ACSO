@@ -111,6 +111,109 @@ int64_t sign_extend(int64_t value, int bits) {
     return (value ^ mask) - mask; 
 }
 
+uint8_t mem_read_8(uint64_t address) {
+    // Determine the aligned 32-bit address that contains our byte
+    uint64_t aligned_addr = address & ~0x3;
+    
+    // Read the entire 32-bit word that contains our byte
+    uint32_t word = mem_read_32(aligned_addr);
+    
+    // Extract the specific byte based on the original address
+    int byte_offset = address & 0x3;
+    
+    // Shift and mask to get the correct byte (little-endian)
+    return (word >> (byte_offset * 8)) & 0xFF;
+}
+
+uint16_t mem_read_16(uint64_t address) {
+    // Check if the address is halfword-aligned
+    if (address & 0x1) {
+        printf("Warning: Unaligned halfword read at 0x%" PRIx64 "\n", address);
+    }
+    
+    // Determine the aligned 32-bit address that contains our halfword
+    uint64_t aligned_addr = address & ~0x3;
+    
+    // Read the entire 32-bit word
+    uint32_t word = mem_read_32(aligned_addr);
+    
+    // Extract the specific halfword based on the original address
+    int halfword_offset = (address & 0x3) / 2;
+    
+    // Shift and mask to get the correct halfword (little-endian)
+    return (word >> (halfword_offset * 16)) & 0xFFFF;
+}
+
+uint64_t mem_read_64(uint64_t address) {
+    // Check if the address is 8-byte aligned
+    if (address & 0x7) {
+        printf("Warning: Unaligned 64-bit read at 0x%" PRIx64 "\n", address);
+    }
+    
+    // Read the two 32-bit words that make up our 64-bit value
+    uint32_t low_word = mem_read_32(address);
+    uint32_t high_word = mem_read_32(address + 4);
+    
+    // Combine them into a 64-bit value (little-endian)
+    return ((uint64_t)high_word << 32) | low_word;
+}
+
+void mem_write_8(uint64_t address, uint8_t value) {
+    // Determine the aligned 32-bit address that contains our byte
+    uint64_t aligned_addr = address & ~0x3;
+    
+    // Read the existing 32-bit word
+    uint32_t word = mem_read_32(aligned_addr);
+    
+    // Determine which byte to modify
+    int byte_offset = address & 0x3;
+    
+    // Clear the target byte and insert the new value (little-endian)
+    uint32_t byte_mask = 0xFF << (byte_offset * 8);
+    word = (word & ~byte_mask) | ((value & 0xFF) << (byte_offset * 8));
+    
+    // Write back the modified word
+    mem_write_32(aligned_addr, word);
+}
+
+void mem_write_16(uint64_t address, uint16_t value) {
+    // Check if the address is halfword-aligned
+    if (address & 0x1) {
+        printf("Warning: Unaligned halfword write at 0x%" PRIx64 "\n", address);
+    }
+    
+    // Determine the aligned 32-bit address that contains our halfword
+    uint64_t aligned_addr = address & ~0x3;
+    
+    // Read the existing 32-bit word
+    uint32_t word = mem_read_32(aligned_addr);
+    
+    // Determine which halfword to modify
+    int halfword_offset = (address & 0x3) / 2;
+    
+    // Clear the target halfword and insert the new value (little-endian)
+    uint32_t halfword_mask = 0xFFFF << (halfword_offset * 16);
+    word = (word & ~halfword_mask) | ((value & 0xFFFF) << (halfword_offset * 16));
+    
+    // Write back the modified word
+    mem_write_32(aligned_addr, word);
+}
+
+void mem_write_64(uint64_t address, uint64_t value) {
+    // Check if the address is 8-byte aligned
+    if (address & 0x7) {
+        printf("Warning: Unaligned 64-bit write at 0x%" PRIx64 "\n", address);
+    }
+    
+    // Split the 64-bit value into two 32-bit words (little-endian)
+    uint32_t low_word = value & 0xFFFFFFFF;
+    uint32_t high_word = (value >> 32) & 0xFFFFFFFF;
+    
+    // Write the two 32-bit words
+    mem_write_32(address, low_word);
+    mem_write_32(address + 4, high_word);
+}
+
 void process_instruction() {
     uint32_t inst = mem_read_32(CURRENT_STATE.PC);
     NEXT_STATE.PC = CURRENT_STATE.PC + 4;
@@ -119,7 +222,7 @@ void process_instruction() {
     uint32_t opcode8 = (inst >> 24) & 0xFF;
     uint32_t opcode6 = (inst >> 26) & 0x3F;    
     uint32_t opcode16 = (inst >> 10) & 0xFFFF;
-    // uint32_t opcode11 = (inst >> 21) & 0x7FF;
+    uint32_t opcode11 = (inst >> 21) & 0x7FF;
 
     // Instruction handled flag to avoid multiple "not implemented" messages
     int instruction_handled = 0;
@@ -271,19 +374,88 @@ void process_instruction() {
     }
     
     // Uncomment if needed for load/store instructions
-    // else if (opcode11 == 0x7C0) {  // STUR
-    //     int32_t imm9 = (inst >> 12) & 0x1FF;
-    //     int32_t Rn = (inst >> 5) & 0x1F;
-    //     int32_t Rt = inst & 0x1F;
+    else if (opcode11 == 0x7C0) {  // STUR
+        int32_t imm9 = (inst >> 12) & 0x1FF;
+        int32_t Rn = (inst >> 5) & 0x1F;
+        int32_t Rt = inst & 0x1F;
 
-    //     imm9 = sign_extend(imm9, 64);
+        imm9 = sign_extend(imm9, 64);
     
-    //     uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;
-    //     uint64_t value = CURRENT_STATE.REGS[Rt];
-    //     mem_write_64(addr, value);
-    //     instruction_handled = 1;
-    // }
-    // ... other LDUR/STUR instructions ...
+        uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;
+        uint64_t value = CURRENT_STATE.REGS[Rt];
+        mem_write_64(addr, value);
+        instruction_handled = 1;
+    }
+    
+    else if (opcode11 == 0x1C0) {  // STURB
+        int64_t imm9 = (inst >> 12) & 0x1FF; 
+        int64_t Rn = (inst >> 5) & 0x1F;     
+        int64_t Rt = inst & 0x1F;            
+    
+        imm9 = sign_extend(imm9, 64);
+    
+        uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;  
+        uint8_t value = (uint8_t) CURRENT_STATE.REGS[Rt];
+    
+        mem_write_8(addr, value);
+        instruction_handled = 1;
+    }
+        
+    else if (opcode11 == 0x3C0) {  // STURH
+        int64_t imm9 = (inst >> 12) & 0x1FF; 
+        int64_t Rn = (inst >> 5) & 0x1F;     
+        int64_t Rt = inst & 0x1F;            
+    
+        imm9 = sign_extend(imm9, 64);
+    
+        uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;  
+        uint16_t value = (uint16_t) CURRENT_STATE.REGS[Rt];
+
+        mem_write_16(addr, value);
+        instruction_handled = 1;
+    }
+
+    else if (opcode11 == 0x7C2) {  // LDUR
+        int32_t imm9 = (inst >> 12) & 0x1FF;
+        int32_t Rn = (inst >> 5) & 0x1F;    
+        int32_t Rt = inst & 0x1F;           
+    
+        imm9 = sign_extend(imm9, 64); 
+    
+        uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9; 
+        uint64_t value = mem_read_64(addr);          
+    
+        CURRENT_STATE.REGS[Rt] = value;
+        instruction_handled = 1;
+    }
+
+    else if (opcode11 == 0x1C2) {  // LDURB
+        int32_t imm9 = (inst >> 12) & 0x1FF;
+        int32_t Rn = (inst >> 5) & 0x1F;    
+        int32_t Rt = inst & 0x1F;           
+    
+        imm9 = sign_extend(imm9, 64); 
+    
+        uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9; 
+        uint8_t value = mem_read_8(addr);             
+    
+        CURRENT_STATE.REGS[Rt] = (uint64_t)value; 
+        instruction_handled = 1;
+    }
+
+    else if (opcode11 == 0x3C2) {  // LDURH
+        int32_t imm9 = (inst >> 12) & 0x1FF;
+        int32_t Rn = (inst >> 5) & 0x1F;
+        int32_t Rt = inst & 0x1F;
+    
+        imm9 = sign_extend(imm9, 64);
+    
+        uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;
+        uint16_t value = mem_read_16(addr);
+    
+        CURRENT_STATE.REGS[Rt] = (uint64_t)value;
+        instruction_handled = 1;
+    }
 
     // Print only one "not implemented" message if no handler matched
     if (!instruction_handled) {
