@@ -1,0 +1,144 @@
+Ejecutando ./ref_sim_x86 con adds.x...
+Ejecutando ./sim con adds.x...
+
+==== Salida del Simulador 1 ====
+ARM Simulator
+
+Read 3 words from program into memory.
+
+ARM-SIM> 
+Simulating...
+
+Simulator halted
+
+ARM-SIM> 
+
+Current register/bus values :
+-------------------------------------
+Instruction Count : 3
+PC                : 0x40000c
+Registers:
+X0: 0x1
+X1: 0x1
+X2: 0x0
+X3: 0x0
+X4: 0x0
+X5: 0x0
+X6: 0x0
+X7: 0x0
+X8: 0x0
+X9: 0x0
+X10: 0x0
+X11: 0x0
+X12: 0x0
+X13: 0x0
+X14: 0x0
+X15: 0x0
+X16: 0x0
+X17: 0x0
+X18: 0x0
+X19: 0x0
+X20: 0x0
+X21: 0x0
+X22: 0x0
+X23: 0x0
+X24: 0x0
+X25: 0x0
+X26: 0x0
+X27: 0x0
+X28: 0x0
+X29: 0x0
+X30: 0x0
+X31: 0x0
+FLAG_N: 0
+FLAG_Z: 0
+
+ARM-SIM> 
+Bye.
+
+
+==== Salida del Simulador 2 ====
+ARM Simulator
+
+Read 3 words from program into memory.
+
+ARM-SIM> 
+Simulating...
+
+Simulator halted
+
+ARM-SIM> 
+
+Current register/bus values :
+-------------------------------------
+Instruction Count : 3
+PC                : 0x40000c
+Registers:
+X0: 0x0
+X1: 0x0
+X2: 0x0
+X3: 0x0
+X4: 0x0
+X5: 0x0
+X6: 0x0
+X7: 0x0
+X8: 0x0
+X9: 0x0
+X10: 0x0
+X11: 0x0
+X12: 0x0
+X13: 0x0
+X14: 0x0
+X15: 0x0
+X16: 0x0
+X17: 0x0
+X18: 0x0
+X19: 0x0
+X20: 0x0
+X21: 0x0
+X22: 0x0
+X23: 0x0
+X24: 0x0
+X25: 0x0
+X26: 0x0
+X27: 0x0
+X28: 0x0
+X29: 0x0
+X30: 0x0
+X31: 0x0
+FLAG_N: 0
+FLAG_Z: 1
+
+ARM-SIM> 
+Bye.
+
+
+==== Comparación de Estados ====
+Se encontraron 3 diferencias:
+  - FLAG_Z: 0 vs 1
+  - X0: 0x1 vs 0x0
+  - X1: 0x1 vs 0x0
+
+==== Diferencias Detalladas ====
+--- Simulador 1
++++ Simulador 2
+@@ -14,8 +14,8 @@
+ Instruction Count : 3
+ PC                : 0x40000c
+ Registers:
+-X0: 0x1
+-X1: 0x1
++X0: 0x0
++X1: 0x0
+ X2: 0x0
+ X3: 0x0
+ X4: 0x0
+@@ -47,7 +47,7 @@
+ X30: 0x0
+ X31: 0x0
+ FLAG_N: 0
+-FLAG_Z: 0
++FLAG_Z: 1
+ 
+ ARM-SIM> 
+ Bye.
