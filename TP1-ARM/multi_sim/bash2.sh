@@ -8,6 +8,10 @@ fi
 
 INPUT_FILE=$1
 
+# Kill any existing session with the same name
+SESSION_NAME="sim_compare"
+tmux kill-session -t "$SESSION_NAME" 2>/dev/null
+
 # Find simulators
 find_sim() {
     for path in "./$1" "./src/$1" "../$1" "../src/$1"; do
@@ -46,19 +50,17 @@ if ! command -v tmux &> /dev/null; then
 fi
 
 # Create a new tmux session
-SESSION_NAME="sim_compare"
 tmux new-session -d -s "$SESSION_NAME"
 
 # Split the window horizontally
 tmux split-window -h -t "$SESSION_NAME"
 
-# Start simulators in each pane
-tmux send-keys -t "${SESSION_NAME}.0" "$SIM $INPUT_FILE" C-m
-tmux send-keys -t "${SESSION_NAME}.1" "$REF_SIM $INPUT_FILE" C-m
+# Add a title to each pane and start simulators
+tmux send-keys -t "${SESSION_NAME}.0" "clear && echo '=== YOUR SIMULATOR ===' && echo && $SIM $INPUT_FILE" C-m
+tmux send-keys -t "${SESSION_NAME}.1" "clear && echo '=== REFERENCE SIMULATOR ===' && echo && $REF_SIM $INPUT_FILE" C-m
 
-# Add a title to each pane
-tmux send-keys -t "${SESSION_NAME}.0" "clear && echo '=== YOUR SIMULATOR ===' && echo" C-m
-tmux send-keys -t "${SESSION_NAME}.1" "clear && echo '=== REFERENCE SIMULATOR ===' && echo" C-m
+# Wait a moment to let the simulators initialize
+sleep 1
 
 # Set synchronized input
 tmux set-window-option -t "$SESSION_NAME" synchronize-panes on
