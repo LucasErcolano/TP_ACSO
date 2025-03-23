@@ -13,11 +13,11 @@ typedef void (*InstructionHandler)(uint32_t);
 // Instruction Metadata Struct
 // --------------------------
 typedef struct {
-    uint32_t mask;       // Opcode mask
-    uint32_t pattern;    // Expected opcode bits
-    int length;          // Opcode length in bits
+    uint32_t pattern;
+    int length; 
     InstructionHandler handler;
 } InstructionEntry;
+
 
 // --------------------------
 // Global Definitions
@@ -65,8 +65,8 @@ void init_opcode_map() {
 
     // Format: {pattern, opcode_length, handler}
     InstructionEntry entries[] = {
-        // HLT: 11010110000 (11 bits)
-        {0xD4500000, 11, handle_hlt},
+        // HLT: 11010110000 (8 bits)?
+        {0xD4500000, 8, handle_hlt},
         // B.cond: 01010100 (8 bits)
         {0x54000000, 8, handle_b_cond},
         // B: 000101 (6 bits)
@@ -75,12 +75,12 @@ void init_opcode_map() {
         {0xD61F0000, 22, handle_br},
         // ADDS (Immediate): 10110001 (8 bits)
         {0xB1000000, 8, handle_adds_imm},
-        // ADDS (Register): 10101011000 (11 bits)
-        {0xAB000000, 11, handle_adds_reg},
+        // ADDS (Register): 10101011000 (8 bits)?
+        {0xAB000000, 8, handle_adds_reg},
         // SUBS (Immediate): 11110001 (8 bits)
         {0xF1000000, 8, handle_subs_imm},
-        // SUBS (Register): 11101011000 (11 bits)
-        {0xEB000000, 11, handle_subs_reg},
+        // SUBS (Register): 11101011000 (8 bits)?
+        {0xEB000000, 8, handle_subs_reg},
         // ANDS: 11101010 (8 bits)
         {0xEA000000, 8, handle_ands},
         // EOR: 11001010 (8 bits)
@@ -115,19 +115,19 @@ void init_opcode_map() {
     };
 
     // Define las máscaras según el opcode_length
-    uint32_t mask6 = 0x3F;
-    uint32_t mask8 = 0xFF;
-    uint32_t mask9 = 0x1FF;
-    uint32_t mask11 = 0x7FF;
-    uint32_t mask16 = 0xFFFF;
-    uint32_t mask22 = 0x3FFFFF;
+    uint32_t mask6 = 0x3F000000;
+    uint32_t mask8 = 0xFF000000;
+    uint32_t mask9 = 0x1FF00000;
+    uint32_t mask11 = 0x7FF0000;
+    uint32_t mask16 = 0xFFFF000;
+    uint32_t mask22 = 0x3FFFFF0;
 
     // Register all entries (sorted by descending opcode_length)
     for (int i = 0; i < sizeof(entries)/sizeof(entries[0]); i++) {
         uint32_t mask;
         
         // Seleccionar máscara según opcode_length
-        switch (entries[i].opcode_length) {
+        switch (entries[i].length) {
             case 6:
                 mask = mask6;
                 break;
