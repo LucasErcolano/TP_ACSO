@@ -49,8 +49,14 @@ if ! command -v tmux &> /dev/null; then
     exit 1
 fi
 
+# Enable mouse mode in tmux configuration
+tmux set -g mouse on 2>/dev/null || true
+
 # Create a new tmux session
 tmux new-session -d -s "$SESSION_NAME"
+
+# Enable mouse mode for this session
+tmux set-option -t "$SESSION_NAME" mouse on
 
 # Split the window horizontally
 tmux split-window -h -t "$SESSION_NAME"
@@ -69,6 +75,7 @@ tmux set-window-option -t "$SESSION_NAME" synchronize-panes on
 echo "Starting simulators in tmux session. Both panes will receive the same input."
 echo "Press Ctrl+B followed by D to detach from the session without closing it."
 echo "Press Ctrl+B followed by X to close the current pane."
+echo "Use mouse wheel to scroll in the panes."
 echo "==============================================================="
 tmux attach-session -t "$SESSION_NAME"
 
