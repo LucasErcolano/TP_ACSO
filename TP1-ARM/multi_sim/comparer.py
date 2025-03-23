@@ -3,9 +3,7 @@
 import sys
 import os
 import subprocess
-import threading
 import time
-import signal
 
 def usage():
     print(f"Usage: {sys.argv[0]} <input_file.x>")
@@ -15,107 +13,90 @@ def check_executable(path):
     if not os.path.isfile(path) or not os.access(path, os.X_OK):
         print(f"Error: {path} not found or not executable")
         sys.exit(1)
+    return path
 
-def read_output(process, name, lock):
-    """Read output from a process and print it with a header"""
-    while True:
-        output = process.stdout.readline()
-        if output == '' and process.poll() is not None:
-            break
-        if output:
-            with lock:
-                print(f"\n=== {name} OUTPUT ===")
-                print(output.strip())
-                print("=====================")
-                print("> ", end="", flush=True)  # Re-print prompt
+def find_executable(name):
+    """Find the executable in current or neighboring directories"""
+    paths = [
+        f"./{name}",
+        f"./src/{name}",
+        f"../{name}",
+        f"../src/{name}"
+    ]
+    
+    # Try Intel version for ref_sim if on Linux
+    if name == "ref_sim":
+        paths.append("./ref_sim_x86")
+        paths.append("../ref_sim_x86")
+    
+    for path in paths:
+        if os.path.isfile(path) and os.access(path, os.X_OK):
+            return path
+    
+    print(f"Error: Could not find executable '{name}'")
+    sys.exit(1)
 
 def main():
     if len(sys.argv) < 2:
         usage()
     
     input_file = sys.argv[1]
-    sim_path = "./sim"
-    ref_sim_path = "./ref_sim"
     
-    check_executable(sim_path)
-    check_executable(ref_sim_path)
+    # Find executables
+    sim_path = find_executable("sim")
+    ref_sim_path = find_executable("ref_sim")
     
-    # Start both simulators
-    sim = subprocess.Popen([sim_path, input_file], 
-                          stdin=subprocess.PIPE, 
-                          stdout=subprocess.PIPE, 
-                          stderr=subprocess.STDOUT,
-                          text=True, 
-                          bufsize=1)
-    
-    ref_sim = subprocess.Popen([ref_sim_path, input_file], 
-                              stdin=subprocess.PIPE, 
-                              stdout=subprocess.PIPE, 
-                              stderr=subprocess.STDOUT,
-                              text=True, 
-                              bufsize=1)
-    
-    # Print initial output from both simulators
-    print("\n=== YOUR SIMULATOR INITIAL OUTPUT ===")
-    time.sleep(0.5)  # Give some time for initial output
-    while sim.stdout.readable() and not sim.stdout.closed:
-        line = sim.stdout.readline()
-        if not line:
-            break
-        print(line.strip())
-        if "ARM-SIM>" in line:
-            break
-    
-    print("\n=== REFERENCE SIMULATOR INITIAL OUTPUT ===")
-    while ref_sim.stdout.readable() and not ref_sim.stdout.closed:
-        line = ref_sim.stdout.readline()
-        if not line:
-            break
-        print(line.strip())
-        if "ARM-SIM>" in line:
-            break
-    
-    # Setup output readers
-    output_lock = threading.Lock()
-    sim_thread = threading.Thread(target=read_output, args=(sim, "YOUR SIMULATOR", output_lock))
-    ref_sim_thread = threading.Thread(target=read_output, args=(ref_sim, "REFERENCE SIMULATOR", output_lock))
-    
-    sim_thread.daemon = True
-    ref_sim_thread.daemon = True
-    
-    sim_thread.start()
-    ref_sim_thread.start()
+    print(f"Using simulators:\n  Your simulator: {sim_path}\n  Reference simulator: {ref_sim_path}")
+    print(f"Input file: {input_file}")
     
     print("\n=== SIMULATOR COMPARISON TOOL ===")
     print("Enter commands below. Both simulators will receive the same input.")
-    print("Press Ctrl+C to exit.")
+    print("Commands will be sent to both simulators and their outputs will be displayed.")
+    print("Type 'exit' or 'quit' to exit the tool.")
     print("===============================")
     
     try:
         while True:
             cmd = input("> ")
-            if cmd.strip().lower() == "exit" or cmd.strip().lower() == "quit":
+            if cmd.strip().lower() in ["exit", "quit"]:
                 break
-                
-            # Send command to both simulators
-            sim.stdin.write(cmd + "\n")
-            sim.stdin.flush()
             
-            ref_sim.stdin.write(cmd + "\n")
-            ref_sim.stdin.flush()
+            # Run your simulator with the command
+            print("\n=== YOUR SIMULATOR OUTPUT ===")
+            try:
+                sim_proc = subprocess.run(
+                    f"echo '{cmd}' | {sim_path} {input_file}",
+                    shell=True,
+                    text=True,
+                    timeout=5,
+                    capture_output=True
+                )
+                print(sim_proc.stdout)
+                if sim_proc.stderr:
+                    print("STDERR:", sim_proc.stderr)
+            except subprocess.TimeoutExpired:
+                print("Your simulator timed out after 5 seconds")
             
-            # Give some time for the commands to process
-            time.sleep(0.2)
+            # Run reference simulator with the command
+            print("\n=== REFERENCE SIMULATOR OUTPUT ===")
+            try:
+                ref_proc = subprocess.run(
+                    f"echo '{cmd}' | {ref_sim_path} {input_file}",
+                    shell=True,
+                    text=True,
+                    timeout=5,
+                    capture_output=True
+                )
+                print(ref_proc.stdout)
+                if ref_proc.stderr:
+                    print("STDERR:", ref_proc.stderr)
+            except subprocess.TimeoutExpired:
+                print("Reference simulator timed out after 5 seconds")
+            
+            print("===============================")
     
     except KeyboardInterrupt:
         print("\nExiting...")
-    
-    finally:
-        # Clean up
-        sim.terminate()
-        ref_sim.terminate()
-        sim.wait(timeout=1)
-        ref_sim.wait(timeout=1)
 
 if __name__ == "__main__":
     main()
