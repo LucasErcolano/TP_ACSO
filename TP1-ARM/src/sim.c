@@ -63,86 +63,99 @@ void init_opcode_map() {
     
     opcode_map = hashmap_create();
 
-    // Format: {mask, pattern, opcode_length, handler}
+    // Format: {pattern, opcode_length, handler}
     InstructionEntry entries[] = {
         // HLT: 11010110000 (11 bits)
-        {0xFF000000, 0xD4500000, 11, handle_hlt},
-
+        {0xD4500000, 11, handle_hlt},
         // B.cond: 01010100 (8 bits)
-        {0xFF000000, 0x54000000, 8, handle_b_cond},
-
+        {0x54000000, 8, handle_b_cond},
         // B: 000101 (6 bits)
-        {0xFC000000, 0x14000000, 6, handle_b},
-
+        {0x14000000, 6, handle_b},
         // BR: 1101011000111111000000 (22 bits)
-        {0xFFFFFC00, 0xD61F0000, 22, handle_br},
-
+        {0xD61F0000, 22, handle_br},
         // ADDS (Immediate): 10110001 (8 bits)
-        {0xFF000000, 0xB1000000, 8, handle_adds_imm},
-
+        {0xB1000000, 8, handle_adds_imm},
         // ADDS (Register): 10101011000 (11 bits)
-        {0xFF000000, 0xAB000000, 11, handle_adds_reg},
-
+        {0xAB000000, 11, handle_adds_reg},
         // SUBS (Immediate): 11110001 (8 bits)
-        {0xFF000000, 0xF1000000, 8, handle_subs_imm},
-
+        {0xF1000000, 8, handle_subs_imm},
         // SUBS (Register): 11101011000 (11 bits)
-        {0xFF200000, 0xEB000000, 11, handle_subs_reg},
-
+        {0xEB000000, 11, handle_subs_reg},
         // ANDS: 11101010 (8 bits)
-        {0xFF000000, 0xEA000000, 8, handle_ands},
-
+        {0xEA000000, 8, handle_ands},
         // EOR: 11001010 (8 bits)
-        {0xFF000000, 0xCA000000, 8, handle_eor},
-
+        {0xCA000000, 8, handle_eor},
         // ORR: 10101010 (8 bits)
-        {0xFF000000, 0xAA000000, 8, handle_orr},
-
+        {0xAA000000, 8, handle_orr},
         // MOVZ: 110100101 (9 bits)
-        {0xFF800000, 0xD2800000, 9, handle_movz},
-
+        {0xD2800000, 9, handle_movz},
         // LSL/LSR: 110100110 (9 bits)
-        {0xFFE00000, 0xD3400000, 9, handle_shifts},
-
+        {0xD3400000, 9, handle_shifts},
         // STUR: 11111000000 (11 bits)
-        {0xFFC00000, 0xF8000000, 11, handle_stur},
-
+        {0xF8000000, 11, handle_stur},
         // LDUR: 11111000010 (11 bits)
-        {0xFFC00000, 0xF8400000, 11, handle_ldur},
-
+        {0xF8400000, 11, handle_ldur},
         // CBZ/CBNZ: 10110100/10110101 (8 bits)
-        {0xFF000000, 0xB4000000, 8, handle_cbz},
-        {0xFF000000, 0xB5000000, 8, handle_cbnz},
-
+        {0xB4000000, 8, handle_cbz},
+        {0xB5000000, 8, handle_cbnz},
         // MUL: 10011011000 (11 bits)
-        {0xFF200000, 0x9B000000, 11, handle_mul},
-
+        {0x9B000000, 11, handle_mul},
         // STURB: (missing opcode_length)
-        {0xFFC00000, 0x38000000, 1, handle_sturb},
-
-        // STURH: (missing opcode_length)
-        {0xFFC00000, 0x78000000, 1, handle_sturh},
-
-        // LDURB: (missing opcode_length)
-        {0xFFC00000, 0x38400000, 1, handle_ldurb},
-
-        // LDURH: (missing opcode_length)
-        {0xFFC00000, 0x78400000, 1, handle_ldurh},
-
-        // ADD (Register): (missing opcode_length)
-        {0xFF200000, 0x8B000000, 1, handle_add_reg},
-
-        // ADD (Immediate): (missing opcode_length)
-        {0xFF000000, 0x91000000, 1, handle_add_imm}
+        {0x38000000, 11, handle_sturb},
+        // STURH: (missing opcode_length
+        {0x78000000, 11, handle_sturh},
+        // LDURB: (missing opcode_length
+        {0x38400000, 11, handle_ldurb},
+        // LDURH: (missing opcode_length
+        {0x78400000, 11, handle_ldurh},
+        // ADD (Register): (missing opcode_length
+        {0x8B000000, 11, handle_add_reg},
+        // ADD (Immediate): (missing opcode_length
+        {0x91000000, 8, handle_add_imm}
     };
-    
-    // Register all entries (sorted by descending opcode length)
+
+    // Define las máscaras según el opcode_length
+    uint32_t mask6 = 0x3F;
+    uint32_t mask8 = 0xFF;
+    uint32_t mask9 = 0x1FF;
+    uint32_t mask11 = 0x7FF;
+    uint32_t mask16 = 0xFFFF;
+    uint32_t mask22 = 0x3FFFFF;
+
+    // Register all entries (sorted by descending opcode_length)
     for (int i = 0; i < sizeof(entries)/sizeof(entries[0]); i++) {
-        hashmap_put(opcode_map, 
-            entries[i].mask, 
-            entries[i].pattern & entries[i].mask,  // Apply mask to pattern
-            entries[i].handler
-        );  
+        uint32_t mask;
+        
+        // Seleccionar máscara según opcode_length
+        switch (entries[i].opcode_length) {
+            case 6:
+                mask = mask6;
+                break;
+            case 8:
+                mask = mask8;
+                break;
+            case 9:
+                mask = mask9;
+                break;
+            case 11:
+                mask = mask11;
+                break;
+            case 16:
+                mask = mask16;
+                break;
+            case 22:
+                mask = mask22;
+                break;
+            default:
+                // Manejo de error o caso por defecto
+                mask = 0xFFFFFFFF;
+        }
+        
+        hashmap_put(opcode_map,
+                    mask,
+                    entries[i].pattern & mask, // Apply mask to pattern
+                    entries[i].handler
+        );
     }
 }
 
