@@ -28,28 +28,28 @@ int branch_taken = 0;
 // --------------------------
 // Instruction Handlers (Forward Declarations)
 // --------------------------
-void handle_hlt(uint32_t);
-void handle_adds_imm(uint32_t);
-void handle_adds_reg(uint32_t);
-void handle_subs_imm(uint32_t);
-void handle_subs_reg(uint32_t);
-void handle_ands(uint32_t);
-void handle_eor(uint32_t);
-void handle_orr(uint32_t);
-void handle_b(uint32_t);
-void handle_br(uint32_t);
-void handle_b_cond(uint32_t);
+void handle_hlt(uint32_t);✅
+void handle_adds_imm(uint32_t);✅
+void handle_adds_reg(uint32_t);✅
+void handle_subs_imm(uint32_t);✅
+void handle_subs_reg(uint32_t);✅
+void handle_ands(uint32_t);✅
+void handle_eor(uint32_t);✅
+void handle_orr(uint32_t);✅
+void handle_b(uint32_t);✅
+void handle_br(uint32_t);✅
+void handle_b_cond(uint32_t);✅
 void handle_cbz(uint32_t);
 void handle_cbnz(uint32_t);
-void handle_ldur(uint32_t);
-void handle_stur(uint32_t);
-void handle_movz(uint32_t);
+void handle_ldur(uint32_t);✅
+void handle_stur(uint32_t);✅
+void handle_movz(uint32_t);✅
 void handle_mul(uint32_t);
 void handle_shifts(uint32_t);
-void handle_sturb(uint32_t);
-void handle_sturh(uint32_t);
-void handle_ldurb(uint32_t);
-void handle_ldurh(uint32_t);
+void handle_sturb(uint32_t);✅
+void handle_sturh(uint32_t);✅
+void handle_ldurb(uint32_t);✅
+void handle_ldurh(uint32_t);✅
 void handle_add_reg(uint32_t);
 void handle_add_imm(uint32_t);
 
@@ -90,9 +90,9 @@ void init_opcode_map() {
         {0x91000000, 8, handle_add_imm}
     };
 
-    uint32_t mask6 = 0x3F000000;
+    uint32_t mask6 = 0xFE000000;
     uint32_t mask8 = 0xFF000000;
-    uint32_t mask9 = 0x1FF00000;
+    uint32_t mask9 = 0xFF800000;
     uint32_t mask11 = 0x7FF0000;
     uint32_t mask22 = 0x3FFFFF0;
 
@@ -168,7 +168,6 @@ void process_instruction() {
 static void update_flags(int64_t result) {
     NEXT_STATE.FLAG_Z = (result == 0);   
     NEXT_STATE.FLAG_N = (result < 0);
-    //CURRENT_STATE.FLAG_N = (result >> 63) & 1; ?
 }
 
 // Helper function: Extend a 64-bit value based on the option and apply left shift by imm3.
