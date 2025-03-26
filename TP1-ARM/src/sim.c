@@ -44,8 +44,6 @@ void handle_cbnz(uint32_t);
 void handle_ldur(uint32_t);
 void handle_stur(uint32_t);
 void handle_movz(uint32_t);
-void handle_lsl(uint32_t);
-void handle_lsr(uint32_t);
 void handle_mul(uint32_t);
 void handle_shifts(uint32_t);
 void handle_sturb(uint32_t);
@@ -59,77 +57,50 @@ void handle_add_imm(uint32_t);
 // Opcode Map Initialization
 // --------------------------
 void init_opcode_map() {
-    if (opcode_map) return;  // Ensure single initialization
+    if (opcode_map) return;
     
     opcode_map = hashmap_create();
 
     // Format: {pattern, opcode_length, handler}
     InstructionEntry entries[] = {
-        // HLT: 0xD4500000, 8 bits
         {0xD4500000, 8, handle_hlt},
-        // B.cond: 0x54000000, 8 bits
         {0x54000000, 8, handle_b_cond},
-        // B: 0x14000000, 6 bits
         {0x14000000, 6, handle_b},
-        // BR: 0xD61F0000, 22 bits
         {0xD61F0000, 22, handle_br},
-        // ADDS (Immediate): 0xB1000000, 8 bits
         {0xB1000000, 8, handle_adds_imm},
-        // ADDS (Register): 0xAB000000, 8 bits
         {0xAB000000, 8, handle_adds_reg},
-        // SUBS (Immediate): 0xF1000000, 8 bits
         {0xF1000000, 8, handle_subs_imm},
-        // SUBS (Register): 0xEB000000, 8 bits
         {0xEB000000, 8, handle_subs_reg},
-        // ANDS: 0xEA000000, 8 bits
         {0xEA000000, 8, handle_ands},
-        // EOR: 0xCA000000, 8 bits
         {0xCA000000, 8, handle_eor},
-        // ORR: 0xAA000000, 8 bits
         {0xAA000000, 8, handle_orr},
-        // MOVZ: 0xD2800000, 9 bits
         {0xD2800000, 9, handle_movz},
-        // LSL (Immediate): se asume opcode base 0xD3400000, 9 bits
-        {0xD3400000, 9, handle_lsl},
-        // LSR (Immediate): se asume opcode base 0xD3800000, 9 bits (diferencia en bit 22)
-        {0xD3800000, 9, handle_lsr},
-        // STUR: 0xF8000000, 11 bits
+        {0xD3400000, 9, handle_shifts},
+        {0xD3800000, 9, handle_shifts},
         {0xF8000000, 11, handle_stur},
-        // LDUR: 0xF8400000, 11 bits
         {0xF8400000, 11, handle_ldur},
-        // CBZ: 0xB4000000, 8 bits
         {0xB4000000, 8, handle_cbz},
-        // CBNZ: 0xB5000000, 8 bits
         {0xB5000000, 8, handle_cbnz},
-        // MUL: 0x9B000000, 11 bits
         {0x9B000000, 11, handle_mul},
-        // STURB: 0x38000000, 11 bits
         {0x38000000, 11, handle_sturb},
-        // STURH: 0x78000000, 11 bits
         {0x78000000, 11, handle_sturh},
-        // LDURB: 0x38400000, 11 bits
         {0x38400000, 11, handle_ldurb},
-        // LDURH: 0x78400000, 11 bits
         {0x78400000, 11, handle_ldurh},
-        // ADD (Register): 0x8B000000, 11 bits
         {0x8B000000, 11, handle_add_reg},
-        // ADD (Immediate): 0x91000000, 8 bits
         {0x91000000, 8, handle_add_imm}
     };
 
-    // Define las máscaras según el opcode_length
     uint32_t mask6 = 0x3F000000;
     uint32_t mask8 = 0xFF000000;
     uint32_t mask9 = 0x1FF00000;
     uint32_t mask11 = 0x7FF0000;
-    uint32_t mask16 = 0xFFFF000;
     uint32_t mask22 = 0x3FFFFF0;
 
     // Register all entries (sorted by descending opcode_length)
     for (int i = 0; i < sizeof(entries)/sizeof(entries[0]); i++) {
         uint32_t mask;
         
-        // Seleccionar máscara según opcode_length
+        // Seleccionar máscara según opcode_length (Se podria hacer mas canchero?)
         switch (entries[i].length) {
             case 6:
                 mask = mask6;
@@ -150,13 +121,12 @@ void init_opcode_map() {
                 mask = mask22;
                 break;
             default:
-                // Manejo de error o caso por defecto
-                mask = 0xFFFFFFFF;
+                printf("Unsupported opcode length: %d\n", entries[i].length);
         }
         
         hashmap_put(opcode_map,
                     mask,
-                    entries[i].pattern & mask, // Apply mask to pattern
+                    entries[i].pattern & mask,
                     entries[i].handler
         );
     }
@@ -202,7 +172,6 @@ static void update_flags(int64_t result) {
     NEXT_STATE.FLAG_Z = (result == 0);   
     NEXT_STATE.FLAG_N = (result < 0);
     //CURRENT_STATE.FLAG_N = (result >> 63) & 1; ?
-    //current o next flag?
 }
 
 // Helper function: Extend a 64-bit value based on the option and apply left shift by imm3.
@@ -651,30 +620,6 @@ void handle_b_cond(uint32_t instruction) {
     } else {
         NEXT_STATE.PC = CURRENT_STATE.PC + 4;
     }
-}
-
-// LSL (Immediate)
-// Formato esperado: lsl Rd, Rn, imm6
-// Ejemplo: lsl X4, X3, 4   => X4 = X3 << 4
-void handle_lsl(uint32_t instruction) {
-    uint32_t rd   = instruction & 0x1F;              // bits [4:0]: destino
-    uint32_t rn   = (instruction >> 5) & 0x1F;         // bits [9:5]: fuente
-    uint32_t imm6 = (instruction >> 10) & 0x3F;        // bits [15:10]: valor inmediato de shift
-
-    NEXT_STATE.REGS[rd] = CURRENT_STATE.REGS[rn] << imm6;
-    if (!branch_taken) NEXT_STATE.PC += 4;
-}
-
-// LSR (Immediate)
-// Formato esperado: lsr Rd, Rn, imm6
-// Ejemplo: lsr X4, X3, 4   => X4 = X3 >> 4 (desplazamiento lógico)
-void handle_lsr(uint32_t instruction) {
-    uint32_t rd   = instruction & 0x1F;              // bits [4:0]: destino
-    uint32_t rn   = (instruction >> 5) & 0x1F;         // bits [9:5]: fuente
-    uint32_t imm6 = (instruction >> 10) & 0x3F;        // bits [15:10]: valor inmediato de shift
-
-    NEXT_STATE.REGS[rd] = CURRENT_STATE.REGS[rn] >> imm6;
-    if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
 // MOVZ
