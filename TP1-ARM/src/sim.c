@@ -624,7 +624,7 @@ void handle_ldur(uint32_t instruction) {
     uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9; 
     uint64_t value = mem_read_64(addr);          
 
-    CURRENT_STATE.REGS[Rt] = value;
+    NEXT_STATE.REGS[Rt] = value;
     if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
@@ -638,7 +638,7 @@ void handle_ldurb(uint32_t instruction) {
     uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9; 
     uint8_t value = mem_read_8(addr);             
 
-    CURRENT_STATE.REGS[Rt] = (uint64_t)value; 
+    NEXT_STATE.REGS[Rt] = (uint64_t)value; 
     if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
@@ -652,7 +652,7 @@ void handle_ldurh(uint32_t instruction) {
     uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;
     uint16_t value = mem_read_16(addr);
 
-    CURRENT_STATE.REGS[Rt] = (uint64_t)value;
+    NEXT_STATE.REGS[Rt] = (uint64_t)value;
     if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
