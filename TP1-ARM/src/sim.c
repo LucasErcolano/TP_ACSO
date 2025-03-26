@@ -243,23 +243,7 @@ static inline uint64_t extend_register(uint64_t value, int option, int imm3) {
     return result << imm3;
 }
 
-void execute_ADDS_immediate(int d, int n, uint32_t imm12, int shift) {
-    uint64_t operand1 = (n == 31) ? CURRENT_STATE.REGS[31] : CURRENT_STATE.REGS[n];
-    uint64_t imm = (shift == 1) ? (imm12 << 12) : imm12;
-    uint64_t result = operand1 + imm;
-    
-    update_flags(result);
-    CURRENT_STATE.REGS[d] = result;
-}
 
-void execute_ADDS_extended(int d, int n, int m, int option, int imm3) {
-    uint64_t operand1 = (n == 31) ? CURRENT_STATE.REGS[31] : CURRENT_STATE.REGS[n];
-    uint64_t operand2 = extend_register(CURRENT_STATE.REGS[m], option, imm3);
-    uint64_t result = operand1 + operand2;
-    
-    update_flags(result);
-    CURRENT_STATE.REGS[d] = result;
-}
 
 void execute_SUBS_immediate(int d, int n, uint32_t imm12, int shift) {
     uint64_t operand1 = (n == 31) ? CURRENT_STATE.REGS[31] : CURRENT_STATE.REGS[n];
@@ -417,12 +401,18 @@ void handle_hlt(uint32_t instruction) {
 }
 
 void handle_adds_imm(uint32_t instruction) {
-    uint64_t imm12 = (instruction >> 10) & 0xFFF;
+    uint32_t imm12 = (instruction >> 10) & 0xFFF;
     uint32_t shift = (instruction >> 22) & 0x1;
     uint32_t Rd = instruction & 0x1F;
     uint32_t Rn = (instruction >> 5) & 0x1F;
-    // Keeping the helper function call
-    execute_ADDS_immediate(Rd, Rn, imm12, shift);
+
+    uint32_t operand1 = (n == 31) ? CURRENT_STATE.REGS[31] : CURRENT_STATE.REGS[n];
+    uint32_t imm = (shift == 1) ? (imm12 << 12) : imm12;
+    uint32_t result = operand1 + imm;
+    CURRENT_STATE.REGS[d] = result;
+
+    NEXT_STATE.FLAG_Z = (result == 0);   
+    NEXT_STATE.FLAG_N = (result < 0);        
     if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
@@ -432,8 +422,14 @@ void handle_adds_reg(uint32_t instruction) {
     uint32_t imm3   = (instruction >> 10) & 0x7;
     uint32_t option = (instruction >> 13) & 0x7;
     uint32_t Rm     = (instruction >> 16) & 0x1F;
-    // Keeping the helper function call
-    execute_ADDS_extended(Rd, Rn, Rm, option, imm3);
+
+    uint32_t operand1 = (n == 31) ? CURRENT_STATE.REGS[31] : CURRENT_STATE.REGS[n];
+    uint64_t operand2 = extend_register(CURRENT_STATE.REGS[m], option, imm3);
+    uint64_t result = operand1 + operand2;
+    CURRENT_STATE.REGS[d] = result;
+
+    NEXT_STATE.FLAG_Z = (result == 0);   
+    NEXT_STATE.FLAG_N = (result < 0);     
     if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
