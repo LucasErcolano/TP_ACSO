@@ -28,30 +28,30 @@ int branch_taken = 0;
 // --------------------------
 // Instruction Handlers (Forward Declarations)
 // --------------------------
-void handle_hlt(uint32_t);✅
-void handle_adds_imm(uint32_t);✅
-void handle_adds_reg(uint32_t);✅
-void handle_subs_imm(uint32_t);✅
-void handle_subs_reg(uint32_t);✅
-void handle_ands(uint32_t);✅
-void handle_eor(uint32_t);✅
-void handle_orr(uint32_t);✅
-void handle_b(uint32_t);✅
-void handle_br(uint32_t);✅
-void handle_b_cond(uint32_t);✅
-void handle_cbz(uint32_t);
-void handle_cbnz(uint32_t);
-void handle_ldur(uint32_t);✅
-void handle_stur(uint32_t);✅
-void handle_movz(uint32_t);✅
-void handle_mul(uint32_t);
-void handle_shifts(uint32_t);
-void handle_sturb(uint32_t);✅
-void handle_sturh(uint32_t);✅
-void handle_ldurb(uint32_t);✅
-void handle_ldurh(uint32_t);✅
-void handle_add_reg(uint32_t);
-void handle_add_imm(uint32_t);
+void handle_hlt(uint32_t);//✅
+void handle_adds_imm(uint32_t);//✅
+void handle_adds_reg(uint32_t);//✅
+void handle_subs_imm(uint32_t);//✅
+void handle_subs_reg(uint32_t);//✅
+void handle_ands(uint32_t);//✅
+void handle_eor(uint32_t);//✅
+void handle_orr(uint32_t);//✅
+void handle_b(uint32_t);//✅
+void handle_br(uint32_t);//✅
+void handle_b_cond(uint32_t);//✅
+void handle_cbz(uint32_t);//✅
+void handle_cbnz(uint32_t);//✅ 
+void handle_ldur(uint32_t);//✅
+void handle_stur(uint32_t);//✅
+void handle_movz(uint32_t);//✅
+void handle_mul(uint32_t);//✅
+void handle_shifts(uint32_t);//✅
+void handle_sturb(uint32_t);//✅
+void handle_sturh(uint32_t);//✅
+void handle_ldurb(uint32_t);//✅
+void handle_ldurh(uint32_t);//✅
+void handle_add_reg(uint32_t);//✅
+void handle_add_imm(uint32_t);//✅
 
 // --------------------------
 // Opcode Map Initialization
@@ -90,11 +90,11 @@ void init_opcode_map() {
         {0x91000000, 8, handle_add_imm}
     };
 
-    uint32_t mask6 = 0xFE000000;
-    uint32_t mask8 = 0xFF000000;
-    uint32_t mask9 = 0xFF800000;
-    uint32_t mask11 = 0x7FF0000;
-    uint32_t mask22 = 0x3FFFFF0;
+    uint32_t mask6 =  0xFE000000;
+    uint32_t mask8 =  0xFF000000;
+    uint32_t mask9 =  0xFF800000;
+    uint32_t mask11 = 0xFFE00000;
+    uint32_t mask22 = 0xFFFFFC00;
 
     // Register all entries (sorted by descending opcode_length)
     for (int i = 0; i < sizeof(entries)/sizeof(entries[0]); i++) {
@@ -696,7 +696,7 @@ void handle_cbz(uint32_t instruction) {
     int64_t offset = ((int64_t)imm) << 2;                // Desplazar 2 bits para word alignment
 
     if (CURRENT_STATE.REGS[rt] == 0) {
-        CURRENT_STATE.PC = CURRENT_STATE.PC + offset;
+        NEXT_STATE.PC = CURRENT_STATE.PC + offset;
         branch_taken = 1;
     } else {
         NEXT_STATE.PC = CURRENT_STATE.PC + 4;
@@ -713,7 +713,7 @@ void handle_cbnz(uint32_t instruction) {
     int64_t offset = ((int64_t)imm) << 2;                // Desplazar 2 bits para word alignment
 
     if (CURRENT_STATE.REGS[rt] != 0) {
-        CURRENT_STATE.PC = CURRENT_STATE.PC + offset;
+        NEXT_STATE.PC = CURRENT_STATE.PC + offset;
         branch_taken = 1;
     } else {
         NEXT_STATE.PC = CURRENT_STATE.PC + 4;
