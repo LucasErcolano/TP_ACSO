@@ -402,30 +402,29 @@ void handle_hlt(uint32_t instruction) {
 
 void handle_adds_imm(uint32_t instruction) {
     uint32_t imm12 = (instruction >> 10) & 0xFFF;
-    uint32_t shift = (instruction >> 22) & 0x1;
-    uint32_t Rd = instruction & 0x1F;
-    uint32_t Rn = (instruction >> 5) & 0x1F;
+    uint32_t shift = (instruction >> 22) & 0x3;
+    uint32_t d = instruction & 0x1F;
+    uint32_t n = (instruction >> 5) & 0x1F;
 
-    uint32_t operand1 = (n == 31) ? CURRENT_STATE.REGS[31] : CURRENT_STATE.REGS[n];
     uint32_t imm = (shift == 1) ? (imm12 << 12) : imm12;
-    uint32_t result = operand1 + imm;
-    CURRENT_STATE.REGS[d] = result;
+    uint32_t result = CURRENT_STATE.REGS[n] + imm;
+    NEXT_STATE.REGS[d] = result;
 
     update_flags(result);       
     if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
 void handle_adds_reg(uint32_t instruction) {
-    uint32_t Rd     = instruction & 0x1F;
-    uint32_t Rn     = (instruction >> 5) & 0x1F;
+    uint32_t d     = instruction & 0x1F;
+    uint32_t n     = (instruction >> 5) & 0x1F;
     uint32_t imm3   = (instruction >> 10) & 0x7;
     uint32_t option = (instruction >> 13) & 0x7;
-    uint32_t Rm     = (instruction >> 16) & 0x1F;
+    uint32_t m     = (instruction >> 16) & 0x1F;
 
     uint32_t operand1 = (n == 31) ? CURRENT_STATE.REGS[31] : CURRENT_STATE.REGS[n];
     uint64_t operand2 = extend_register(CURRENT_STATE.REGS[m], option, imm3);
     uint64_t result = operand1 + operand2;
-    CURRENT_STATE.REGS[d] = result;
+    NEXT_STATE.REGS[d] = result;
 
     update_flags(result);    
     if (!branch_taken) NEXT_STATE.PC += 4;
@@ -449,7 +448,7 @@ void handle_subs_imm(uint32_t instruction) {
     uint64_t result = operand1 - operand2;
     update_flags(result);
     if (Rd != 31) {
-        CURRENT_STATE.REGS[Rd] = result;
+        NEXT_STATE.REGS[Rd] = result;
     }
     if (!branch_taken) NEXT_STATE.PC += 4;
 }
@@ -466,7 +465,7 @@ void handle_subs_reg(uint32_t instruction) {
     uint64_t result = operand1 - operand2;
     update_flags(result);            
     if (Rd != 31) {
-        CURRENT_STATE.REGS[Rd] = result;
+        NEXT_STATE.REGS[Rd] = result;
     }
     if (!branch_taken) NEXT_STATE.PC += 4;
 }
@@ -528,7 +527,7 @@ void handle_eor(uint32_t instruction) {
             break;
     }
     uint64_t result = operand1 ^ operand2;
-    CURRENT_STATE.REGS[Rd] = result;
+    NEXT_STATE.REGS[Rd] = result;
     update_flags(result);
     if (!branch_taken) NEXT_STATE.PC += 4;
 }
@@ -609,7 +608,7 @@ void handle_ldur(uint32_t instruction) {
     uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9; 
     uint64_t value = mem_read_64(addr);          
 
-    CURRENT_STATE.REGS[Rt] = value;
+    NEXT_STATE.REGS[Rt] = value;
     if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
@@ -623,7 +622,7 @@ void handle_ldurb(uint32_t instruction) {
     uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9; 
     uint8_t value = mem_read_8(addr);             
 
-    CURRENT_STATE.REGS[Rt] = (uint64_t)value; 
+    NEXT_STATE.REGS[Rt] = (uint64_t)value; 
     if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
@@ -637,7 +636,7 @@ void handle_ldurh(uint32_t instruction) {
     uint64_t addr = CURRENT_STATE.REGS[Rn] + imm9;
     uint16_t value = mem_read_16(addr);
 
-    CURRENT_STATE.REGS[Rt] = (uint64_t)value;
+    NEXT_STATE.REGS[Rt] = (uint64_t)value;
     if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
