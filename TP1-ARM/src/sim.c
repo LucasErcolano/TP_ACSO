@@ -612,7 +612,7 @@ void handle_b_cond(uint32_t instruction) {
     }
     
     if (take_branch) {
-        CURRENT_STATE.PC = CURRENT_STATE.PC + offset;
+        NEXT_STATE.PC = CURRENT_STATE.PC + offset;
         branch_taken = 1;
     } else {
         NEXT_STATE.PC = CURRENT_STATE.PC + 4;
