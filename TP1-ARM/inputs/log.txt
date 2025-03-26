@@ -1,0 +1,43 @@
+hz@hz-HP-Envy-x360-2-in-1-Laptop-15-fh0xxx:~/Documents/GitHub/TP_ACSO/TP1-ARM/inputs$ python3 asm2hex_3 bcond.s 
+bcond.s: Assembler messages:
+bcond.s:7: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X1,XZR,5'
+bcond.s:8: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X2,XZR,5'
+bcond.s:9: Error: operand 1 should be an integer register -- `subs X31,X1,X2'
+bcond.s:13: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X0,XZR,1'
+bcond.s:16: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X0,XZR,10'
+bcond.s:22: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X1,XZR,5'
+bcond.s:23: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X2,XZR,6'
+bcond.s:24: Error: operand 1 should be an integer register -- `subs X31,X1,X2'
+bcond.s:28: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X1,XZR,1'
+bcond.s:31: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X1,XZR,20'
+bcond.s:38: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X1,XZR,6'
+bcond.s:39: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X2,XZR,5'
+bcond.s:40: Error: operand 1 should be an integer register -- `subs X31,X1,X2'
+bcond.s:44: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X2,XZR,1'
+bcond.s:47: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X2,XZR,30'
+bcond.s:54: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X1,XZR,5'
+bcond.s:55: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X2,XZR,6'
+bcond.s:56: Error: operand 1 should be an integer register -- `subs X31,X1,X2'
+bcond.s:60: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X3,XZR,1'
+bcond.s:63: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X3,XZR,40'
+bcond.s:70: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X1,XZR,6'
+bcond.s:71: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X2,XZR,5'
+bcond.s:72: Error: operand 1 should be an integer register -- `subs X31,X1,X2'
+bcond.s:76: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X4,XZR,1'
+bcond.s:79: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X4,XZR,50'
+bcond.s:87: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X1,XZR,5'
+bcond.s:88: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X2,XZR,5'
+bcond.s:89: Error: operand 1 should be an integer register -- `subs X31,X1,X2'
+bcond.s:93: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X5,XZR,1'
+bcond.s:96: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X5,XZR,60'
+bcond.s:99: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X1,XZR,5'
+bcond.s:100: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X2,XZR,6'
+bcond.s:101: Error: operand 1 should be an integer register -- `subs X31,X1,X2'
+bcond.s:105: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X6,XZR,1'
+bcond.s:108: Error: integer register expected in the extended/shifted operand register at operand 3 -- `adds X6,XZR,70'
+Traceback (most recent call last):
+  File "/home/hz/Documents/GitHub/TP_ACSO/TP1-ARM/inputs/asm2hex_3", line 17, in <module>
+    subprocess.run([armas, fasm, "-o", ftmp], check=True)
+  File "/usr/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/home/hz/Documents/GitHub/TP_ACSO/TP1-ARM/inputs/../aarch64-linux-android-4.9/bin/aarch64-linux-android-as', 'bcond.s', '-o', 'tmp.out']' returned non-zero exit status 1.
