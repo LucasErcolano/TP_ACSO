@@ -464,7 +464,7 @@ void handle_subs_imm(uint32_t instruction) {
     uint64_t result = operand1 - operand2;
     update_flags(result);
     if (Rd != 31) {
-        CURRENT_STATE.REGS[Rd] = result;
+        NEXT_STATE.REGS[Rd] = result;
     }
     if (!branch_taken) NEXT_STATE.PC += 4;
 }
@@ -481,7 +481,7 @@ void handle_subs_reg(uint32_t instruction) {
     uint64_t result = operand1 - operand2;
     update_flags(result);            
     if (Rd != 31) {
-        CURRENT_STATE.REGS[Rd] = result;
+        NEXT_STATE.REGS[Rd] = result;
     }
     if (!branch_taken) NEXT_STATE.PC += 4;
 }
@@ -543,7 +543,7 @@ void handle_eor(uint32_t instruction) {
             break;
     }
     uint64_t result = operand1 ^ operand2;
-    CURRENT_STATE.REGS[Rd] = result;
+    NEXT_STATE.REGS[Rd] = result;
     update_flags(result);
     if (!branch_taken) NEXT_STATE.PC += 4;
 }
