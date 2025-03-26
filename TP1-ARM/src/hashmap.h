@@ -16,9 +16,9 @@ typedef struct HashMap {
     int size;
 } HashMap;
 
-HashMap* hashmap_create();
+HashMap *hashmap_create(void);
 void hashmap_put(HashMap *map, uint32_t mask, uint32_t masked_pattern, void *value);
-void* hashmap_get(HashMap *map, uint32_t mask, uint32_t masked_pattern);
+void *hashmap_get(HashMap *map, uint32_t mask, uint32_t masked_pattern);
 void hashmap_free(HashMap *map);
 
 #endif
