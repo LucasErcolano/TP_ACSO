@@ -642,9 +642,54 @@ void handle_ldurh(uint32_t instruction) {
 
 // Stub implementations for remaining functions
 void handle_b_cond(uint32_t instruction) {
-    printf("handle_b_cond called but not implemented\n");
-    if (!branch_taken) NEXT_STATE.PC += 4;
+    // Extraer el campo inmediato de 19 bits (bits [23:5])
+    int32_t imm19 = (instruction >> 5) & 0x7FFFF;  // 19 bits
+    imm19 = sign_extend(imm19, 19);
+    // El offset se obtiene desplazando 2 bits a la izquierda (porque las instrucciones son word-aligned)
+    int64_t offset = ((int64_t)imm19) << 2;
+
+    // Extraer el campo de condición (bits [3:0])
+    uint32_t cond = instruction & 0xF;
+    
+    int take_branch = 0;
+    switch (cond) {
+        case 0x0: // BEQ: Branch if Equal (salta si Z == 1)
+            if (CURRENT_STATE.FLAG_Z == 1)
+                take_branch = 1;
+            break;
+        case 0x1: // BNE: Branch if Not Equal (salta si Z == 0)
+            if (CURRENT_STATE.FLAG_Z == 0)
+                take_branch = 1;
+            break;
+        case 0xA: // BGE: Branch if Greater or Equal (salta si N == V; como V se asume 0, salta si N == 0)
+            if (CURRENT_STATE.FLAG_N == 0)
+                take_branch = 1;
+            break;
+        case 0xB: // BLT: Branch if Less Than (salta si N != V; en nuestro caso, salta si N != 0)
+            if (CURRENT_STATE.FLAG_N != 0)
+                take_branch = 1;
+            break;
+        case 0xC: // BGT: Branch if Greater Than (salta si Z == 0 y N == V; en nuestro caso, si Z == 0 y N == 0)
+            if ((CURRENT_STATE.FLAG_Z == 0) && (CURRENT_STATE.FLAG_N == 0))
+                take_branch = 1;
+            break;
+        case 0xD: // BLE: Branch if Less or Equal (salta si Z == 1 o N != V; aquí, si Z == 1 o N != 0)
+            if ((CURRENT_STATE.FLAG_Z == 1) || (CURRENT_STATE.FLAG_N != 0))
+                take_branch = 1;
+            break;
+        default:
+            // Otros códigos de condición no implementados: no se salta.
+            break;
+    }
+    
+    if (take_branch) {
+        CURRENT_STATE.PC = CURRENT_STATE.PC + offset;
+        branch_taken = 1;
+    } else {
+        NEXT_STATE.PC = CURRENT_STATE.PC + 4;
+    }
 }
+
 
 void handle_cbz(uint32_t instruction) {
     printf("handle_cbz called but not implemented\n");
