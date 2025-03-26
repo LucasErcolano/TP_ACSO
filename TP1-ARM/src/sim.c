@@ -114,9 +114,6 @@ void init_opcode_map() {
             case 11:
                 mask = mask11;
                 break;
-            case 16:
-                mask = mask16;
-                break;
             case 22:
                 mask = mask22;
                 break;
