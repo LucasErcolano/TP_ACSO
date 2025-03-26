@@ -418,6 +418,7 @@ void handle_hlt(uint32_t instruction) {
 
 void handle_adds_imm(uint32_t instruction) {
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     uint64_t imm12 = (instruction >> 10) & 0xFFF;
     uint32_t shift = (instruction >> 22) & 0x1;
     uint32_t Rd = instruction & 0x1F;
@@ -425,6 +426,8 @@ void handle_adds_imm(uint32_t instruction) {
     // Keeping the helper function call
     execute_ADDS_immediate(Rd, Rn, imm12, shift);
 =======
+=======
+>>>>>>> Stashed changes
     uint32_t imm12 = (instruction >> 10) & 0xFFF;
     uint32_t shift = (instruction >> 22) & 0x3;
     uint32_t d = instruction & 0x1F;
@@ -445,10 +448,13 @@ void handle_adds_reg(uint32_t instruction) {
     uint32_t imm3   = (instruction >> 10) & 0x7;
     uint32_t option = (instruction >> 13) & 0x7;
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     uint32_t Rm     = (instruction >> 16) & 0x1F;
     // Keeping the helper function call
     execute_ADDS_extended(Rd, Rn, Rm, option, imm3);
 =======
+=======
+>>>>>>> Stashed changes
     uint32_t m     = (instruction >> 16) & 0x1F;
 
     uint32_t operand1 = (n == 31) ? CURRENT_STATE.REGS[31] : CURRENT_STATE.REGS[n];
