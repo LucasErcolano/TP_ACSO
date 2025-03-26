@@ -411,8 +411,7 @@ void handle_adds_imm(uint32_t instruction) {
     uint32_t result = operand1 + imm;
     CURRENT_STATE.REGS[d] = result;
 
-    NEXT_STATE.FLAG_Z = (result == 0);   
-    NEXT_STATE.FLAG_N = (result < 0);        
+    update_flags(result);       
     if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
@@ -428,8 +427,7 @@ void handle_adds_reg(uint32_t instruction) {
     uint64_t result = operand1 + operand2;
     CURRENT_STATE.REGS[d] = result;
 
-    NEXT_STATE.FLAG_Z = (result == 0);   
-    NEXT_STATE.FLAG_N = (result < 0);     
+    update_flags(result);    
     if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
