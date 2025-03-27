@@ -1,0 +1,10 @@
+.text
+MOV X0, #5
+SUBS X0, X0, #3
+BR X30
+HLT 0
+
+label1:
+ADD X0, X0, #10
+BR X30
+HLT 0
