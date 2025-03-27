@@ -1,0 +1,24 @@
+instruccion, opcode_binario, opcode_hexadecimal
+adds, 1010 1011 001, 0xAB2
+subs, 1110 1011 001, 0xEB2
+hlt, 1101 0100 010, 0xD42
+cmp, 1110 1011 001, 0xEB2
+ands, 1110 1010, 0xEA
+eor, 1100 1010, 0xCA
+orr, 1010 1010, 0xAA
+b, 0001 01, 0x14
+br, 1101 0110 0001 1111 0000 00, 0xD61F00
+b.cond, 0101 0100, 0x54
+lsl, 1101 0011 0, 0xD30
+lsr, 1101 0011 0, 0xD30
+stur, 1111 1000 000, 0xF80
+sturb, 0011 1000 000, 0x380
+sturh, 0111 1000 000, 0x780
+ldur, 1111 1000 010, 0xF82
+ldurb, 0011 1000 010, 0x382
+ldurh, 0111 1000 010, 0x782
+movz, 1101 0010 1, 0xD28
+add, 1000 1011 001, 0x8B2
+mul, 1001 1011 000, 0x9B0
+cbz, 1011 0100, 0xB4
+cbnz, 1011 0101, 0xB5
