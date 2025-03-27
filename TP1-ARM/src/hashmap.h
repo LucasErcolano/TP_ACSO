@@ -5,8 +5,8 @@
 #include <stdlib.h>
 
 typedef struct HashEntry {
-    uint32_t mask;
-    uint32_t masked_pattern;
+    uint32_t length; 
+    uint32_t opcode;
     void *value;
     struct HashEntry *next;
 } HashEntry;
@@ -17,8 +17,8 @@ typedef struct HashMap {
 } HashMap;
 
 HashMap *hashmap_create(void);
-void hashmap_put(HashMap *map, uint32_t mask, uint32_t masked_pattern, void *value);
-void *hashmap_get(HashMap *map, uint32_t mask, uint32_t masked_pattern);
+void hashmap_put(HashMap *map, uint32_t length, uint32_t opcode, void *value);
+void *hashmap_get(HashMap *map, uint32_t length, uint32_t opcode);
 void hashmap_free(HashMap *map);
 
 #endif

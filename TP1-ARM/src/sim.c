@@ -40,20 +40,7 @@ void handle_ldurh(uint32_t);
 void handle_add_reg(uint32_t);
 void handle_add_imm(uint32_t);
 
-// Retorna la máscara correspondiente al tamaño de opcode
-static inline uint32_t mask_from_length(int length) {
-    switch (length) {
-        case 6:  return 0xFE000000;
-        case 8:  return 0xFF000000;
-        case 9:  return 0xFF800000;
-        case 11: return 0xFFE00000;
-        case 22: return 0xFFFFFC00;
-        default:
-            printf("Unsupported opcode length: %d\n", length);
-            exit(1);
-    }
-}
-
+// Inicializa el mapa de opcodes usando como llave (longitud, opcode reducido)
 void init_opcode_map() {
     if (opcode_map) return;
     opcode_map = hashmap_create();
@@ -86,18 +73,21 @@ void init_opcode_map() {
     };
     int n = sizeof(entries) / sizeof(entries[0]);
     for (int i = 0; i < n; i++) {
-        uint32_t mask = mask_from_length(entries[i].length);
-        hashmap_put(opcode_map, mask, entries[i].pattern & mask, entries[i].handler);
+        uint32_t len = entries[i].length;
+        uint32_t opcode_key = entries[i].pattern >> (32 - len);
+        hashmap_put(opcode_map, len, opcode_key, entries[i].handler);
     }
 }
 
 InstructionHandler decode_instruction(uint32_t instruction) {
     if (!opcode_map) init_opcode_map();
-    for (int len = 32; len >= 6; len--) {
-        uint32_t mask = (0xFFFFFFFF >> (32 - len)) << (32 - len);
-        uint32_t opcode = instruction & mask;
-        InstructionHandler handler = hashmap_get(opcode_map, mask, opcode);
-        if (handler) return handler;
+    static const int lengths[] = {22, 11, 9, 8, 6};
+    for (int i = 0; i < sizeof(lengths) / sizeof(lengths[0]); i++) {
+        int len = lengths[i];
+        uint32_t opcode_key = instruction >> (32 - len);
+        InstructionHandler handler = hashmap_get(opcode_map, len, opcode_key);
+        if (handler)
+            return handler;
     }
     return NULL;
 }

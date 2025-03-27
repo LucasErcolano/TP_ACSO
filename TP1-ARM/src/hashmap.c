@@ -1,22 +1,22 @@
 #include "hashmap.h"
 
-static inline int hash_function(const HashMap *map, uint32_t mask, uint32_t pattern) {
-    return (mask ^ pattern) % map->size;
+static inline int hash_function(const HashMap *map, uint32_t length, uint32_t opcode) {
+    return ((length * 31) ^ opcode) % map->size;
 }
 
 HashMap *hashmap_create(void) {
     HashMap *map = malloc(sizeof(*map));
     if (!map) return NULL;
-    map->size = 101; // Número primo para mejor distribución
+    map->size = 101;
     map->buckets = calloc(map->size, sizeof(HashEntry *));
     return map;
 }
 
-void hashmap_put(HashMap *map, uint32_t mask, uint32_t pattern, void *value) {
-    int bucket = hash_function(map, mask, pattern);
+void hashmap_put(HashMap *map, uint32_t length, uint32_t opcode, void *value) {
+    int bucket = hash_function(map, length, opcode);
     HashEntry *entry = map->buckets[bucket];
     while (entry) {
-        if (entry->mask == mask && entry->masked_pattern == pattern) {
+        if (entry->length == length && entry->opcode == opcode) {
             entry->value = value;
             return;
         }
@@ -24,17 +24,17 @@ void hashmap_put(HashMap *map, uint32_t mask, uint32_t pattern, void *value) {
     }
     HashEntry *new_entry = malloc(sizeof(*new_entry));
     if (!new_entry) return;
-    new_entry->mask = mask;
-    new_entry->masked_pattern = pattern;
+    new_entry->length = length;
+    new_entry->opcode = opcode;
     new_entry->value = value;
     new_entry->next = map->buckets[bucket];
     map->buckets[bucket] = new_entry;
 }
 
-void *hashmap_get(HashMap *map, uint32_t mask, uint32_t pattern) {
-    int bucket = hash_function(map, mask, pattern);
+void *hashmap_get(HashMap *map, uint32_t length, uint32_t opcode) {
+    int bucket = hash_function(map, length, opcode);
     for (HashEntry *entry = map->buckets[bucket]; entry; entry = entry->next)
-        if (entry->mask == mask && entry->masked_pattern == pattern)
+        if (entry->length == length && entry->opcode == opcode)
             return entry->value;
     return NULL;
 }
