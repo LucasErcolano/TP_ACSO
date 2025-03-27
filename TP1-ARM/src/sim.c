@@ -15,61 +15,61 @@ typedef struct {
 HashMap *opcode_map = NULL;
 int branch_taken = 0;
 
-void handle_hlt(uint32_t); //✅ 
-void handle_adds_imm(uint32_t);//✅ 
-void handle_adds_reg(uint32_t);//✅ 
-void handle_subs_imm(uint32_t);//✅ 
-void handle_subs_reg(uint32_t);//✅ 
-void handle_ands(uint32_t);//✅ 
-void handle_eor(uint32_t);//✅ 
-void handle_orr(uint32_t);//✅ 
+void handle_hlt(uint32_t);  
+void handle_adds_imm(uint32_t); 
+void handle_adds_reg(uint32_t); 
+void handle_subs_imm(uint32_t); 
+void handle_subs_reg(uint32_t); 
+void handle_ands(uint32_t); 
+void handle_eor(uint32_t); 
+void handle_orr(uint32_t); 
 void handle_b(uint32_t);
 void handle_br(uint32_t);
-void handle_b_cond(uint32_t);//✅ 
-void handle_cbz(uint32_t);//✅ 
-void handle_cbnz(uint32_t);//✅ 
-void handle_ldur(uint32_t);//✅ 
-void handle_stur(uint32_t);//✅ 
-void handle_movz(uint32_t);//✅ 
-void handle_mul(uint32_t);//✅ 
+void handle_b_cond(uint32_t); 
+void handle_cbz(uint32_t); 
+void handle_cbnz(uint32_t); 
+void handle_ldur(uint32_t); 
+void handle_stur(uint32_t); 
+void handle_movz(uint32_t); 
+void handle_mul(uint32_t); 
 void handle_shifts(uint32_t);
-void handle_sturb(uint32_t);//✅ 
-void handle_sturh(uint32_t);//✅ 
-void handle_ldurb(uint32_t);//✅ 
-void handle_ldurh(uint32_t);//✅ 
-void handle_add_reg(uint32_t);//✅ 
-void handle_add_imm(uint32_t);//✅ 
+void handle_sturb(uint32_t); 
+void handle_sturh(uint32_t); 
+void handle_ldurb(uint32_t); 
+void handle_ldurh(uint32_t); 
+void handle_add_reg(uint32_t); 
+void handle_add_imm(uint32_t); 
 
 // Inicializa el mapa de opcodes usando como llave (longitud, opcode reducido)
 void init_opcode_map() {
     if (opcode_map) return;
     opcode_map = hashmap_create();
     InstructionEntry entries[] = {
-        {0xD4, 8, handle_hlt},
-        {0x54, 8, handle_b_cond},
-        {0x14, 6, handle_b},
-        {0xD61F00, 22, handle_br},
-        {0xB1, 8, handle_adds_imm},
-        {0xAB, 8, handle_adds_reg},
-        {0xF1, 8, handle_subs_imm},
-        {0xEB, 8, handle_subs_reg},
-        {0xEA, 8, handle_ands},
-        {0xCA, 8, handle_eor},
-        {0xAA, 8, handle_orr},
-        {0xD28, 9, handle_movz},
-        {0xD34, 9, handle_shifts},
-        {0xD38, 9, handle_shifts},
-        {0xF80, 11, handle_stur},
-        {0xF84, 11, handle_ldur},
-        {0xB4, 8, handle_cbz},
-        {0xB5, 8, handle_cbnz},
-        {0x9B0, 11, handle_mul},
-        {0x380, 11, handle_sturb},
-        {0x780, 11, handle_sturh},
-        {0x384, 11, handle_ldurb},
-        {0x784, 11, handle_ldurh},
-        {0x8B0, 11, handle_add_reg},
-        {0x91, 8, handle_add_imm}
+        {0xD4500000, 8, handle_hlt},
+        {0x54000000, 8, handle_b_cond},
+        {0x14000000, 6, handle_b},
+        {0xD61F0000, 22, handle_br},
+        {0xB1000000, 8, handle_adds_imm},
+        {0xAB000000, 8, handle_adds_reg},
+        {0xF1000000, 8, handle_subs_imm},
+        {0xEB000000, 8, handle_subs_reg},
+        {0xEA000000, 8, handle_ands},
+        {0xCA000000, 8, handle_eor},
+        {0xAA000000, 8, handle_orr},
+        {0xD2800000, 9, handle_movz},
+        {0xD3400000, 9, handle_shifts},
+        {0xD3800000, 9, handle_shifts},
+        {0xF8000000, 11, handle_stur},
+        {0xF8400000, 11, handle_ldur},
+        {0xB4000000, 8, handle_cbz},
+        {0xB5000000, 8, handle_cbnz},
+        {0x9B000000, 11, handle_mul},
+        {0x38000000, 11, handle_sturb},
+        {0x78000000, 11, handle_sturh},
+        {0x38400000, 11, handle_ldurb},
+        {0x78400000, 11, handle_ldurh},
+        {0x8B000000, 11, handle_add_reg},
+        {0x91000000, 8, handle_add_imm}
     };
     int n = sizeof(entries) / sizeof(entries[0]);
     for (int i = 0; i < n; i++) {
@@ -82,11 +82,9 @@ void init_opcode_map() {
 InstructionHandler decode_instruction(uint32_t instruction) {
     if (!opcode_map) init_opcode_map();
     static const int lengths[] = {22, 11, 9, 8, 6};
-    static const int mask[] = {0xFFFFFC, 0xFFE, 0xFF8, 0xFF, 0xFC};
     for (int i = 0; i < sizeof(lengths) / sizeof(lengths[0]); i++) {
         int len = lengths[i];
-        uint32_t opcode_key = instruction >> (32 - ((len + 3) / 4));
-        opcode_key &= mask[i];
+        uint32_t opcode_key = instruction >> (32 - len);
         InstructionHandler handler = hashmap_get(opcode_map, len, opcode_key);
         if (handler)
             return handler;
