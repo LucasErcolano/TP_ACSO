@@ -15,30 +15,30 @@ typedef struct {
 HashMap *opcode_map = NULL;
 int branch_taken = 0;
 
-void handle_hlt(uint32_t);
-void handle_adds_imm(uint32_t);
-void handle_adds_reg(uint32_t);
-void handle_subs_imm(uint32_t);
-void handle_subs_reg(uint32_t);
-void handle_ands(uint32_t);
-void handle_eor(uint32_t);
-void handle_orr(uint32_t);
+void handle_hlt(uint32_t); //✅ 
+void handle_adds_imm(uint32_t);//✅ 
+void handle_adds_reg(uint32_t);//✅ 
+void handle_subs_imm(uint32_t);//✅ 
+void handle_subs_reg(uint32_t);//✅ 
+void handle_ands(uint32_t);//✅ 
+void handle_eor(uint32_t);//✅ 
+void handle_orr(uint32_t);//✅ 
 void handle_b(uint32_t);
 void handle_br(uint32_t);
-void handle_b_cond(uint32_t);
-void handle_cbz(uint32_t);
-void handle_cbnz(uint32_t);
-void handle_ldur(uint32_t);
-void handle_stur(uint32_t);
-void handle_movz(uint32_t);
-void handle_mul(uint32_t);
+void handle_b_cond(uint32_t);//✅ 
+void handle_cbz(uint32_t);//✅ 
+void handle_cbnz(uint32_t);//✅ 
+void handle_ldur(uint32_t);//✅ 
+void handle_stur(uint32_t);//✅ 
+void handle_movz(uint32_t);//✅ 
+void handle_mul(uint32_t);//✅ 
 void handle_shifts(uint32_t);
-void handle_sturb(uint32_t);
-void handle_sturh(uint32_t);
-void handle_ldurb(uint32_t);
-void handle_ldurh(uint32_t);
-void handle_add_reg(uint32_t);
-void handle_add_imm(uint32_t);
+void handle_sturb(uint32_t);//✅ 
+void handle_sturh(uint32_t);//✅ 
+void handle_ldurb(uint32_t);//✅ 
+void handle_ldurh(uint32_t);//✅ 
+void handle_add_reg(uint32_t);//✅ 
+void handle_add_imm(uint32_t);//✅ 
 
 // Inicializa el mapa de opcodes usando como llave (longitud, opcode reducido)
 void init_opcode_map() {
@@ -241,6 +241,7 @@ void handle_ands(uint32_t instr) {
     uint8_t imm6 = (instr >> 10) & 0x3F;
     uint8_t rn = (instr >> 5) & 0x1F;
     uint8_t rd = instr & 0x1F;
+
     uint64_t op1 = CURRENT_STATE.REGS[rn];
     uint64_t op2 = CURRENT_STATE.REGS[rm];
     switch (shift) {
@@ -446,6 +447,7 @@ void handle_shifts(uint32_t instr) {
     uint32_t rn = (instr >> 5) & 0x1F;
     uint32_t imm6 = (instr >> 10) & 0x3F;
     uint32_t type = (instr >> 22) & 0x1;
+
     uint64_t res = (type == 0) ? (CURRENT_STATE.REGS[rn] << imm6) : (CURRENT_STATE.REGS[rn] >> imm6);
     NEXT_STATE.REGS[rd] = res;
     if (!branch_taken) NEXT_STATE.PC += 4;

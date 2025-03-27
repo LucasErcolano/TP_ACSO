@@ -5,7 +5,6 @@ adds X1, X0, X2
 subs X3, X0, 5
 subs X4, X3, X2
 
-adds X11, X11, 1
 ands X0, X10, X11
 
 eor X0, X10, X11
