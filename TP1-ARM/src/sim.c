@@ -196,7 +196,7 @@ typedef struct {
 
 // Formato D (ejemplo para instrucciones de LOAD/STORE)
 typedef struct {
-    uint16_t opcode;     // Bits [31..22]
+    uint16_t opcode;     // Bits [31..21]
     uint16_t DT_address; // Bits [20..12]
     uint8_t  op;         // Bits [11..10]
     uint8_t  Rn;         // Bits [9..5]
@@ -218,10 +218,11 @@ typedef struct {
 
 // Formato IW (ejemplo para MOVZ, MOVK, etc.)
 typedef struct {
-    uint16_t opcode;   // Bits [31..23]
-    uint16_t MOV_imm;  // Bits [22..5]
+    uint16_t opcode;   // Bits [31..21]
+    uint16_t MOV_imm;  // Bits [20..5]
     uint8_t  Rd;       // Bits [4..0]
 } IWFormat;
+
 
 static inline RFormat decode_R(uint32_t instr) {
     RFormat r;
@@ -244,7 +245,7 @@ static inline IFormat decode_I(uint32_t instr) {
 
 static inline DFormat decode_D(uint32_t instr) {
     DFormat d;
-    d.opcode      = (instr >> 22) & 0x3FF; // bits [31..22]
+    d.opcode      = (instr >> 21) & 0x7FF; // bits [31..21]
     d.DT_address  = (instr >> 12) & 0x1FF; // bits [20..12]
     d.op          = (instr >> 10) & 0x3;   // bits [11..10]
     d.Rn          = (instr >> 5)  & 0x1F;  // bits [9..5]
@@ -269,21 +270,21 @@ static inline CBFormat decode_CB(uint32_t instr) {
 
 static inline IWFormat decode_IW(uint32_t instr) {
     IWFormat iw;
-    iw.opcode   = (instr >> 23) & 0x1FF;   // bits [31..23]
-    iw.MOV_imm  = (instr >> 5)  & 0xFFFF;  // bits [22..5]
+    iw.opcode   = (instr >> 21) & 0x7FF;   // bits [31..21]
+    iw.MOV_imm  = (instr >> 5)  & 0xFFFF;  // bits [20..5]
     iw.Rd       = instr & 0x1F;           // bits [4..0]
     return iw;
 }
-
+// Instrucción HLT
 void handle_hlt(uint32_t instr) {
     RUN_BIT = 0;
     if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
+// ADD (inmediato) con set de banderas
 void handle_adds_imm(uint32_t instr) {
-    IFormat f = decode_I(instr);  // Extrae campos de formato I
+    IFormat f = decode_I(instr);
 
-    // El shift a veces viene en bits [23..22]; aquí lo ejemplificamos:
     uint32_t shift = (instr >> 22) & 0x3;
     uint64_t imm   = (shift == 1) ? (f.ALU_imm << 12) : f.ALU_imm;
 
@@ -298,9 +299,8 @@ void handle_adds_imm(uint32_t instr) {
 
 // ADD (registrador) con set de banderas
 void handle_adds_reg(uint32_t instr) {
-    RFormat r = decode_R(instr);  // Extrae campos de formato R
+    RFormat r = decode_R(instr);
 
-    // Para add con extensión:
     uint32_t imm3 = (instr >> 10) & 0x7;
     uint32_t opt  = (instr >> 13) & 0x7;
 
@@ -316,9 +316,8 @@ void handle_adds_reg(uint32_t instr) {
 
 // SUB (inmediato) con set de banderas
 void handle_subs_imm(uint32_t instr) {
-    IFormat f = decode_I(instr); // Mismo formato I
+    IFormat f = decode_I(instr);
 
-    // shift en bits [23..22]
     uint32_t shift = (instr >> 22) & 0x3;
     uint64_t op1   = (f.Rn == 31) ? CURRENT_STATE.REGS[31] : CURRENT_STATE.REGS[f.Rn];
     uint64_t op2   = (shift == 1) ? (f.ALU_imm << 12) : f.ALU_imm;
@@ -326,7 +325,6 @@ void handle_subs_imm(uint32_t instr) {
     uint64_t res = op1 - op2;
     update_flags(res);
 
-    // Si Rd != 31, guardamos resultado
     if (f.Rd != 31) {
         NEXT_STATE.REGS[f.Rd] = res;
     }
@@ -358,8 +356,6 @@ void handle_subs_reg(uint32_t instr) {
 void handle_ands(uint32_t instr) {
     RFormat r = decode_R(instr);
 
-    // Bits [22..21] => shift, bits [15..10] => imm6, etc. (en tu caso particular).
-    // Aquí lo haremos de forma parecida a tu código original:
     uint8_t shift = (instr >> 22) & 0x3;
     uint8_t imm6  = (instr >> 10) & 0x3F;
 
@@ -415,17 +411,14 @@ void handle_orr(uint32_t instr) {
 void handle_b(uint32_t instr) {
     BFormat b = decode_B(instr);
 
-    // offset con sign-extend si es necesario
     int64_t offset = ((int64_t)(b.BR_address << 6)) >> 4; 
     CURRENT_STATE.PC += offset;
     branch_taken = 1;
 }
 
-// BR (branch registrador) - a menudo es R-type en AArch64, 
-// pero suponemos que decodificas manual o con decode_R si coincide.
+// BR (branch registrador)
 void handle_br(uint32_t instr) {
-    RFormat r = decode_R(instr); // Rn está en bits [9..5], etc.
-    // Típicamente, Rn = (instr >> 5) & 0x1F;
+    RFormat r = decode_R(instr);
     uint32_t Rn = r.Rn;
 
     CURRENT_STATE.PC = CURRENT_STATE.REGS[Rn];
@@ -444,7 +437,7 @@ void handle_stur(uint32_t instr) {
     if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
-// STURB (Store byte) - también DFormat (pero distinto op)
+// STURB (Store byte)
 void handle_sturb(uint32_t instr) {
     DFormat d = decode_D(instr);
 
@@ -511,25 +504,14 @@ void handle_b_cond(uint32_t instr) {
     int32_t imm19 = sign_extend(cb.COND_BR_address, 19);
     int64_t offset = (int64_t)imm19 << 2;
 
-    // En AArch64, la condición se codifica en bits [3..0], 
-    // mientras que cb.Rt son bits [4..0]. Ajusta si difiere.
-    uint32_t cond = instr & 0xF; // p.ej. bits [3..0]
+    uint32_t cond = instr & 0xF; // Por ejemplo, bits [3..0]
 
     int take_branch = 0;
     switch (cond) {
-        case 0x0: // EQ
-            if (CURRENT_STATE.FLAG_Z == 1) take_branch = 1;
-            break;
-        case 0x1: // NE
-            if (CURRENT_STATE.FLAG_Z == 0) take_branch = 1;
-            break;
-        case 0xA: // GE (N=0)
-            if (CURRENT_STATE.FLAG_N == 0) take_branch = 1;
-            break;
-        case 0xB: // LT (N=1)
-            if (CURRENT_STATE.FLAG_N != 0) take_branch = 1;
-            break;
-        // etc. Ajustar según tus necesidades
+        case 0x0: if (CURRENT_STATE.FLAG_Z == 1) take_branch = 1; break;
+        case 0x1: if (CURRENT_STATE.FLAG_Z == 0) take_branch = 1; break;
+        case 0xA: if (CURRENT_STATE.FLAG_N == 0) take_branch = 1; break;
+        case 0xB: if (CURRENT_STATE.FLAG_N != 0) take_branch = 1; break;
     }
 
     if (take_branch) {
@@ -544,11 +526,10 @@ void handle_b_cond(uint32_t instr) {
 void handle_movz(uint32_t instr) {
     IWFormat iw = decode_IW(instr);
 
-    // HW = bits [22..21], imm16 = bits [20..5] (depende de la codificación real).
     uint32_t hw = (instr >> 21) & 0x3;
 
     if (hw != 0) {
-        printf("MOVZ: solo se implementa hw == 0.\n");
+        printf("MOVZ: solo se implementa el caso hw == 0.\n");
     }
     NEXT_STATE.REGS[iw.Rd] = iw.MOV_imm;
 
@@ -619,12 +600,10 @@ void handle_cbnz(uint32_t instr) {
     }
 }
 
-// SHIFTS (ejemplo tipo R o I simplificado)
 void handle_shifts(uint32_t instr) {
-    // Suponiendo que es RFormat y que type está en bit 22, imm6 en [15..10], etc.
     RFormat r = decode_R(instr);
 
-    uint32_t imm6 = r.shamt;         // bits [15..10] (en RFormat lo llamamos shamt)
+    uint32_t imm6 = r.shamt;  
     uint32_t type = (instr >> 22) & 0x1;
 
     uint64_t val = CURRENT_STATE.REGS[r.Rn];
