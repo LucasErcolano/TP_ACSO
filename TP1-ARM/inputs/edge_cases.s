@@ -1,172 +1,132 @@
-        .text
-        .global main
-main:
-; ------------------------------
-; Casos borde para ADDS (inmediato)
-; ------------------------------
-        ; immediate = 0
-        adds_imm    X1, X2, #0
-        ; immediate máximo sin shift (0xFFF = 4095)
-        adds_imm    X3, X4, #4095
-        ; immediate máximo con shift (shift=1, valor = 0xFFF << 12)
-        adds_imm    X5, X6, #4095, LSL #12
+    .section .text
+    .global _start
 
-; ------------------------------
-; Casos borde para ADDS (registro)
-; ------------------------------
-        ; Extensión UXTB, sin shift
-        adds_reg    X7, X8, X9, LSL #0, UXTB
-        ; Extensión SXTW, shift máximo (imm3 = 7)
-        adds_reg    X10, X11, X12, LSL #7, SXTW
+_start:
+    @ ----------------------------
+    @ ADDS Immediate Tests:
+    @ ----------------------------
+    ADDS X0, X1, #0            @ X0 = X1 + 0; update flags
+    @ Immediate máximo sin shift (0xFFF = 4095)
+    ADDS X2, X3, #4095         @ X2 = X3 + 4095; update flags
+    @ Immediate máximo con shift (shift=1, valor=0xFFF<<12)
+    ADDS X4, X5, #4095, LSL #12 @ X4 = X5 + (4095 << 12); update flags
 
-; ------------------------------
-; Casos borde para SUBS (inmediato)
-; ------------------------------
-        subs_imm    X13, X14, #0
-        subs_imm    X15, X16, #4095
-        subs_imm    X17, X18, #4095, LSL #12
+    @ ----------------------------
+    @ ADDS Register Tests (Extended Register variant)
+    @ ----------------------------
+    ADDS X6, X7, X8            @ X6 = X7 + X8; update flags
+    @ (Extended register with extension such as UXTB is not directly supported here)
+    ADDS X9, X10, X11           @ X9 = X10 + X11; update flags
 
-; ------------------------------
-; Casos borde para SUBS (registro)
-; ------------------------------
-        subs_reg    X19, X20, X21, LSL #0, UXTH
-        subs_reg    X22, X23, X24, LSL #7, SXTW
+    @ ----------------------------
+    @ SUBS Immediate Tests:
+    @ ----------------------------
+    SUBS X12, X13, #0          @ X12 = X13 - 0; update flags
+    SUBS X14, X15, #4095        @ X14 = X15 - 4095; update flags
+    SUBS X16, X17, #4095, LSL #12 @ X16 = X17 - (4095 << 12); update flags
 
-; ------------------------------
-; Casos borde para ANDS
-; ------------------------------
-        ands        X25, X26, X27, LSL #0      ; sin shift
-        ands        X28, X29, X30, LSL #63     ; máximo shift (inmediato = 63)
-        ands        X1, X2, X3, LSR #31       ; shift derecho extremo
+    @ ----------------------------
+    @ SUBS Register Tests:
+    @ ----------------------------
+    SUBS X18, X19, X20         @ X18 = X19 - X20; update flags
+    SUBS X21, X22, X23         @ X21 = X22 - X23; update flags
 
-; ------------------------------
-; Casos borde para EOR
-; ------------------------------
-        eor         X4, X5, X6, LSL #0
-        eor         X7, X8, X9, LSR #31
+    @ ----------------------------
+    @ CMP Tests:
+    @ ----------------------------
+    CMP X24, X25               @ Compare X24 and X25; update flags
+    CMP X26, #4                @ Compare X26 with immediate 4; update flags
 
-; ------------------------------
-; Caso para ORR
-; ------------------------------
-        orr         X10, X11, X12
+    @ ----------------------------
+    @ Logical Operations:
+    @ ----------------------------
+    ANDS X27, X28, X29         @ X27 = X28 AND X29; update flags
+    EOR X30, X1, X2            @ X30 = X1 XOR X2
+    ORR X2, X3, X4             @ X2 = X3 OR X4
 
-; ------------------------------
-; Casos para ramas incondicionales y de registro
-; ------------------------------
-        ; Rama incondicional: saltar hacia adelante
-        b           branch_forward
-nop:
-        nop
-branch_forward:
-        nop
-        ; Rama incondicional: saltar hacia atrás
-        b           branch_backward
-branch_backward:
-        nop
+    @ ----------------------------
+    @ Branch Instructions:
+    @ ----------------------------
+    B label_forward            @ Unconditional branch to label_forward
+    NOP                        @ This NOP is skipped if branch works correctly
 
-        ; Rama por registro: mover dirección y saltar
-        mov         X1, branch_forward
-        br          X1
+label_forward:
+    @ Branch via register:
+    BR X0                      @ Branch to address contained in X0
 
-; ------------------------------
-; Casos para rama condicional (B.cond)
-; ------------------------------
-        b_cond      BEQ, label_BEQ     ; salta si FLAG_Z == 1
-        b_cond      BNE, label_BNE     ; salta si FLAG_Z == 0
-        b_cond      BGE, label_BGE     ; salta si FLAG_N == 0
-        b_cond      BLT, label_BLT     ; salta si FLAG_N != 0
-        b_cond      BGT, label_BGT     ; salta si FLAG_Z == 0 y FLAG_N == 0
-        b_cond      BLE, label_BLE     ; salta si FLAG_Z == 1 o FLAG_N != 0
-label_BEQ:
-        nop
-label_BNE:
-        nop
-label_BGE:
-        nop
-label_BLT:
-        nop
-label_BGT:
-        nop
-label_BLE:
-        nop
+    @ Conditional Branches (based on previous CMP; flags assumed to be set)
+    BEQ label_beq              @ Branch if equal
+    BNE label_bne              @ Branch if not equal
+    BGT label_bgt              @ Branch if greater than
+    BLT label_blt              @ Branch if less than
+    BGE label_bge              @ Branch if greater than or equal
+    BLE label_ble              @ Branch if less than or equal
 
-; ------------------------------
-; Casos para CBZ y CBNZ
-; ------------------------------
-        ; CBZ: debe saltar si el registro es 0
-        mov         X1, #0
-        cbz         X1, label_cbz
-        ; CBZ: no salta si el registro es distinto de 0
-        mov         X2, #1
-        cbz         X2, label_cbz_fail
+label_beq:
+    NOP
+    B end_conditions
+label_bne:
+    NOP
+    B end_conditions
+label_bgt:
+    NOP
+    B end_conditions
+label_blt:
+    NOP
+    B end_conditions
+label_bge:
+    NOP
+    B end_conditions
+label_ble:
+    NOP
+
+end_conditions:
+    @ ----------------------------
+    @ CBZ / CBNZ Tests:
+    @ ----------------------------
+    CBZ X3, label_cbz         @ Branch if X3 is zero
+    CBNZ X4, label_cbnz       @ Branch if X4 is not zero
+
 label_cbz:
-        nop
-label_cbz_fail:
-        nop
-
-        ; CBNZ: debe saltar si el registro es distinto de 0
-        mov         X3, #1
-        cbnz        X3, label_cbnz
-        ; CBNZ: no salta si el registro es 0
-        mov         X4, #0
-        cbnz        X4, label_cbnz_fail
+    NOP
+    B next_section
 label_cbnz:
-        nop
-label_cbnz_fail:
-        nop
+    NOP
 
-; ------------------------------
-; Casos para LDUR y STUR (64 bits)
-; ------------------------------
-        ; Almacenamiento en dirección alineada
-        mov         X6, #0x1000
-        stur        X5, [X6, #0]
-        ; Almacenamiento en dirección no alineada (debe emitir advertencia)
-        mov         X8, #0x1003
-        stur        X7, [X8, #7]
-        ldur        X9, [X10, #0]
-        ldur        X11, [X12, #7]
+next_section:
+    @ ----------------------------
+    @ Memory (Load/Store) Tests:
+    @ ----------------------------
+    STUR X5, [X6, #16]         @ Store 64-bit value from X5 at address (X6 + 16)
+    LDUR X7, [X8, #16]         @ Load 64-bit value into X7 from address (X8 + 16)
 
-; ------------------------------
-; Caso para MOVZ
-; ------------------------------
-        movz        X13, #1234            ; caso válido (hw = 0 implícito)
-        ; Caso borde: hw distinto de 0 (se espera mensaje de advertencia)
-        movz_bad    X14, #5678
+    @ STURB and LDURB (8-bit operations)
+    STURB W9, [X10, #16]       @ Store lower 8 bits of W9 at address (X10 + 16)
+    LDURB W11, [X12, #16]       @ Load 8 bits into W11 from address (X12 + 16)
 
-; ------------------------------
-; Caso para MUL
-; ------------------------------
-        mul         X15, X16, X17
+    @ STURH and LDURH (16-bit operations)
+    STURH W13, [X14, #16]       @ Store lower 16 bits of W13 at address (X14 + 16)
+    LDURH W15, [X16, #16]       @ Load 16 bits into W15 from address (X16 + 16)
 
-; ------------------------------
-; Casos para SHIFTS (LSL y LSR)
-; ------------------------------
-        shifts      X18, X19, #0           ; sin desplazamiento
-        shifts      X20, X21, #63          ; máximo desplazamiento
+    @ ----------------------------
+    @ MOVZ Test:
+    @ ----------------------------
+    MOVZ X17, #10              @ Move immediate 10 into X17
 
-; ------------------------------
-; Casos para STURB y LDURB (8 bits)
-; ------------------------------
-        sturb       X22, [X23, #0]
-        ldurb       X24, [X25, #0]
+    @ ----------------------------
+    @ ADD (without updating flags) Tests:
+    @ ----------------------------
+    ADD X18, X19, #3           @ X18 = X19 + 3 (immediate)
+    ADD X20, X21, X22          @ X20 = X21 + X22 (register)
 
-; ------------------------------
-; Casos para STURH y LDURH (16 bits)
-; ------------------------------
-        ; Uso de dirección no alineada (debe emitir advertencia)
-        sturh       X26, [X27, #1]
-        ldurh       X28, [X29, #1]
+    @ ----------------------------
+    @ MUL Test:
+    @ ----------------------------
+    MUL X23, X24, X25          @ X23 = X24 * X25
 
-; ------------------------------
-; Casos para ADD (inmediato y registro, sin actualizar flags)
-; ------------------------------
-        add_imm     X30, X31, #0
-        add_imm     X1, X2, #4095, LSL #12
-        add_reg     X3, X4, X5, LSL #0, UXTX
-        add_reg     X6, X7, X8, LSL #7, SXTW
+    @ ----------------------------
+    @ Halt Simulation:
+    @ ----------------------------
+    HLT #0                   @ Halt (set RUN_BIT to 0 in simulator)
 
-; ------------------------------
-; Final: detener la simulación
-; ------------------------------
-        hlt
+    @ End of Program
