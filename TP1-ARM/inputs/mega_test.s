@@ -12,10 +12,6 @@ eor X0, X10, X11
 
 orr X7, X5, X6
 
-b forward
-
-br X0
-
 stur X10, [X1, 0x0]
 sturb W10, [X1, 0x6]
 sturH W10, [X1, 0x6]
