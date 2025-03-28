@@ -147,11 +147,32 @@ uint16_t mem_read_16(uint64_t addr) {
 }
 
 uint64_t mem_read_64(uint64_t addr) {
-    if (addr & 0x7)
-        printf("Warning: Unaligned 64-bit read at 0x%" PRIx64 "\n", addr);
-    uint32_t low = mem_read_32(addr);
-    uint32_t high = mem_read_32(addr + 4);
-    return ((uint64_t)high << 32) | low;
+    // Ensure 8-byte alignment by masking the lowest 3 bits
+    uint64_t aligned_addr = addr & ~0x7;
+    
+    // Calculate the offset within the 8-byte block
+    uint32_t offset = addr & 0x7;
+    
+    if (offset) {
+        // If not aligned, we need to do a more complex read
+        uint64_t low_part = mem_read_32(aligned_addr);
+        uint64_t high_part = mem_read_32(aligned_addr + 4);
+        
+        if (offset <= 4) {
+            // Low offset case
+            return (high_part << (8 * (4 - offset))) | 
+                   (low_part >> (8 * offset));
+        } else {
+            // High offset case
+            return (high_part >> (8 * (offset - 4))) | 
+                   (low_part << (8 * (8 - offset)));
+        }
+    } else {
+        // If already aligned, do standard 64-bit read
+        uint64_t low_part = mem_read_32(addr);
+        uint64_t high_part = mem_read_32(addr + 4);
+        return low_part | (high_part << 32);
+    }
 }
 
 void mem_write_8(uint64_t addr, uint8_t value) {
@@ -175,10 +196,36 @@ void mem_write_16(uint64_t addr, uint16_t value) {
 }
 
 void mem_write_64(uint64_t addr, uint64_t value) {
-    if (addr & 0x7)
-        printf("Warning: Unaligned 64-bit write at 0x%" PRIx64 "\n", addr);
-    mem_write_32(addr, value & 0xFFFFFFFF);
-    mem_write_32(addr + 4, (value >> 32) & 0xFFFFFFFF);
+    // Ensure 8-byte alignment by masking the lowest 3 bits
+    uint64_t aligned_addr = addr & ~0x7;
+    
+    // Calculate the offset within the 8-byte block
+    uint32_t offset = addr & 0x7;
+    
+    if (offset) {
+        // If not aligned, we need to do a more complex write
+        if (offset <= 4) {
+            // Write first part
+            mem_write_32(aligned_addr, value & 0xFFFFFFFF);
+            // Write second part
+            mem_write_32(aligned_addr + 4, 
+                (value >> (8 * (4 - offset))) | 
+                (mem_read_32(aligned_addr + 4) & ((1U << (8 * offset)) - 1))
+            );
+        } else {
+            // Write first part
+            mem_write_32(aligned_addr, 
+                (mem_read_32(aligned_addr) & ((1U << (8 * (8 - offset))) - 1)) | 
+                ((value << (8 * (8 - offset))) & ~((1U << (8 * (8 - offset))) - 1))
+            );
+            // Write second part
+            mem_write_32(aligned_addr + 4, value >> (8 * (8 - offset)));
+        }
+    } else {
+        // If already aligned, do standard 64-bit write
+        mem_write_32(addr, value & 0xFFFFFFFF);
+        mem_write_32(addr + 4, (value >> 32) & 0xFFFFFFFF);
+    }
 }
 
 void decode_i_group(uint32_t instr, uint32_t *imm12, uint32_t *shift, uint32_t *d, uint32_t *n) {
