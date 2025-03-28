@@ -32,8 +32,7 @@ void init_opcode_map() {
         {0xF80, 11, handle_stur},
         {0xF84, 11, handle_ldur},
         {0xD28, 11, handle_movz}, 
-        {0xD34, 11, handle_shift}, //1101 0011 01
-        {0xD37, 11, handle_shift},  //1101 0011 01
+        {0xD34, 10, handle_shift},
         {0x54, 8, handle_b_cond},
         {0x91, 8, handle_add_imm},
         {0xAA, 8, handle_orr},
@@ -58,7 +57,7 @@ void init_opcode_map() {
 
 InstructionHandler decode_instruction(uint32_t instruction) {
     if (!opcode_map) init_opcode_map();
-    static const int lengths[] = {22, 11, 9, 8, 6};
+    static const int lengths[] = {22, 11, 10, 8, 6};
     for (int i = 0; i < sizeof(lengths)/sizeof(lengths[0]); i++) {
         int len = lengths[i];
         uint32_t opcode_key = instruction >> (32 - len);
