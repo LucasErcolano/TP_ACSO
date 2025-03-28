@@ -237,19 +237,50 @@ void handle_cbnz(uint32_t instr) {
     }
 }
 
-void handle_lsl(uint32_t instr) {
+void handle_shift(uint32_t instr) {
     uint32_t d = instr & 0x1F;
     uint32_t n = (instr >> 5) & 0x1F;
-    uint32_t imm12 = 64 - ((instr >> 16) & 0x3F);
-    uint64_t result = CURRENT_STATE.REGS[n] << imm12;
+    uint32_t imm12 = (instr >> 16) & 0x3F;
+    uint32_t shift_type = (instr >> 22) & 0x3;
+
+    uint64_t result;
+    switch (shift_type) {
+        case 0: // LSL
+            result = CURRENT_STATE.REGS[n] << imm12;
+            break;
+        case 1: // LSR
+            result = CURRENT_STATE.REGS[n] >> imm12;
+            break;
+        case 2: // ASR
+            result = ((int64_t)CURRENT_STATE.REGS[n]) >> imm12;
+            break;
+        case 3: // ROR
+            result = (CURRENT_STATE.REGS[n] >> imm12) | (CURRENT_STATE.REGS[n] << (64 - imm12));
+            break;
+        default:
+            printf("Invalid shift type\n");
+            return; // Invalid shift type, handle error
+    }
     NEXT_STATE.REGS[d] = result;
     if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
-void handle_lsr(uint32_t instr) {
-    uint32_t imm12, d, n;
-    decode_i_group(instr, &imm12, 0, &d, &n);
-    uint64_t result = CURRENT_STATE.REGS[n] >> imm12;
-    NEXT_STATE.REGS[d] = result;
-    if (!branch_taken) NEXT_STATE.PC += 4;
-}
+//void handle_lsl(uint32_t instr) {
+//    uint32_t d = instr & 0x1F;
+//    uint32_t n = (instr >> 5) & 0x1F;
+//    uint32_t imm12 = 64 - ((instr >> 16) & 0x3F);
+//
+//    uint64_t result = CURRENT_STATE.REGS[n] << imm12;
+//    NEXT_STATE.REGS[d] = result;
+//    if (!branch_taken) NEXT_STATE.PC += 4;
+//}
+//
+//void handle_lsr(uint32_t instr) {
+//    uint32_t d = instr & 0x1F;
+//    uint32_t n = (instr >> 5) & 0x1F;
+//    uint32_t imm12 = (instr >> 16) & 0x3F;
+//
+//    uint64_t result = CURRENT_STATE.REGS[n] >> imm12;
+//    NEXT_STATE.REGS[d] = result;
+//    if (!branch_taken) NEXT_STATE.PC += 4;
+//}

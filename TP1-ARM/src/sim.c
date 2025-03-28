@@ -31,9 +31,9 @@ void init_opcode_map() {
         {0x9B0, 11, handle_mul},
         {0xF80, 11, handle_stur},
         {0xF84, 11, handle_ldur},
-        {0xD28, 9, handle_movz},
-        {0xD34, 9, handle_lsr},
-        {0xD37, 9, handle_lsl},
+        {0xD28, 11, handle_movz}, 
+        {0xD34, 11, handle_shift}, //1101 0011 01
+        {0xD37, 11, handle_shift},  //1101 0011 01
         {0x54, 8, handle_b_cond},
         {0x91, 8, handle_add_imm},
         {0xAA, 8, handle_orr},
