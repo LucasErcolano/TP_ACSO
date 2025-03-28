@@ -487,8 +487,10 @@ void handle_lsl(uint32_t instr) {
 }
 
 void handle_lsr(uint32_t instr) {
-    uint32_t imm12, d, n;
-    decode_i_group(instr, &imm12, 0, &d, &n);
+    uint32_t d = instr & 0x1F;
+    uint32_t n = (instr >> 5) & 0x1F;
+    uint32_t imm12 = (instr >> 16) & 0x3F;
+
     uint64_t result = CURRENT_STATE.REGS[n] >> imm12;
     NEXT_STATE.REGS[d] = result;
     if (!branch_taken) NEXT_STATE.PC += 4;
