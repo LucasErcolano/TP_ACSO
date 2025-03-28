@@ -1,10 +1,9 @@
 .text
-MOV X0, #5
-SUBS X0, X0, #3
-BR X30
+MOVZ X0, 0x400008
+B label1
 HLT 0
 
 label1:
-ADD X0, X0, #10
-BR X30
+ADD X1, X2, 10
+BR X0
 HLT 0
