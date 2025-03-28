@@ -6,6 +6,8 @@
 #include "decode.h"
 #include "handlers.h"
 
+const uint64_t PC_INITIAL = 0x400000;
+
 void handle_hlt(uint32_t instr) {
     RUN_BIT = 0;
 }
@@ -87,12 +89,14 @@ void handle_orr(uint32_t instr) {
 void handle_b(uint32_t instr) {
     int32_t imm26 = instr & 0x3FFFFFF;
     int64_t offset = ((int64_t)(imm26 << 6)) >> 4;
-    NEXT_STATE.PC += offset - 4;
+    uint64_t new_pc = NEXT_STATE.PC + offset - 4;
+    NEXT_STATE.PC = (new_pc >= PC_INITIAL) ? new_pc : PC_INITIAL;
 }
 
 void handle_br(uint32_t instr) {
     uint32_t n = (instr >> 5) & 0x1F;
-    NEXT_STATE.PC = CURRENT_STATE.REGS[n] - 4;
+    uint64_t new_pc = CURRENT_STATE.REGS[n] - 4;
+    NEXT_STATE.PC = (new_pc >= PC_INITIAL) ? new_pc : PC_INITIAL;
 }
 
 void handle_stur(uint32_t instr) {
@@ -157,16 +161,16 @@ void handle_b_cond(uint32_t instr) {
         case 0xC: if ((CURRENT_STATE.FLAG_Z == 0) && (CURRENT_STATE.FLAG_N == 0)) take_branch = 1; break;
         case 0xD: if ((CURRENT_STATE.FLAG_Z == 1) || (CURRENT_STATE.FLAG_N != 0)) take_branch = 1; break;
     }
-    if (take_branch)
-        NEXT_STATE.PC = CURRENT_STATE.PC + offset - 4;
+    if (take_branch) {
+        uint64_t new_pc = CURRENT_STATE.PC + offset - 4;
+        NEXT_STATE.PC = (new_pc >= PC_INITIAL) ? new_pc : PC_INITIAL;
+    }
 }
 
 void handle_movz(uint32_t instr) {
     uint32_t d = instr & 0x1F;
     uint32_t hw = (instr >> 21) & 0x3;
     uint32_t imm16 = (instr >> 5) & 0xFFFF;
-    if (hw != 0)
-        printf("MOVZ: solo se implementa el caso hw == 0.\n");
     NEXT_STATE.REGS[d] = imm16;
 }
 
@@ -193,28 +197,18 @@ void handle_mul(uint32_t instr) {
 void handle_cbz(uint32_t instr) {
     uint32_t t, offset;
     decode_conditional_branch(instr, &t, &offset);
-    if (CURRENT_STATE.REGS[t] == 0)
-        NEXT_STATE.PC = CURRENT_STATE.PC + offset - 4;
+    if (CURRENT_STATE.REGS[t] == 0){
+        uint64_t new_pc = CURRENT_STATE.PC + offset - 4;
+        NEXT_STATE.PC = (new_pc >= PC_INITIAL) ? new_pc : PC_INITIAL;
+    }
 }
 
 void handle_cbnz(uint32_t instr) {
     uint32_t t, offset;
     decode_conditional_branch(instr, &t, &offset);
-    if (CURRENT_STATE.REGS[t] != 0)
-        NEXT_STATE.PC = CURRENT_STATE.PC + offset - 4;
-}
-void decode_lsl_lsr(uint32_t instr, bool *is_lsr, uint8_t *shift, uint8_t *rd, uint8_t *rn) {
-    uint8_t immr = (instr >> 16) & 0x3F; 
-    uint8_t imms = (instr >> 10) & 0x3F; 
-    *rn = (instr >> 5) & 0x1F;           
-    *rd = instr & 0x1F;                  
-
-    if (imms == 63) {
-        *is_lsr = true;
-        *shift = immr;     
-    } else {
-        *is_lsr = false;
-        *shift = 64 - immr; 
+    if (CURRENT_STATE.REGS[t] != 0){
+        uint64_t new_pc = CURRENT_STATE.PC + offset - 4;
+        NEXT_STATE.PC = (new_pc >= PC_INITIAL) ? new_pc : PC_INITIAL;
     }
 }
 
