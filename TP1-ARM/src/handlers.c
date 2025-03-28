@@ -237,34 +237,61 @@ void handle_cbnz(uint32_t instr) {
     }
 }
 
-void handle_shift(uint32_t instr) {
-    uint32_t d = instr & 0x1F;
-    uint32_t n = (instr >> 5) & 0x1F;
-    uint32_t imm12 = (instr >> 16) & 0x3F;
-    uint32_t shift_type = (instr >> 22) & 0x3;
+void decode_lsl_lsr(uint32_t instr, bool *is_lsr, uint8_t *shift, uint8_t *rd, uint8_t *rn) {
+    uint8_t immr = (instr >> 16) & 0x3F;  // bits 21..16
+    uint8_t imms = (instr >> 10) & 0x3F;  // bits 15..10
+    *rn = (instr >> 5) & 0x1F;            // bits 9..5
+    *rd = instr & 0x1F;                   // bits 4..0
 
-    uint64_t result;
-    switch (shift_type) {
-        case 0: // LSL
-            result = CURRENT_STATE.REGS[n] << imm12;
-            break;
-        case 1: // LSR
-            result = CURRENT_STATE.REGS[n] >> imm12;
-            break;
-        case 2: // ASR
-            result = ((int64_t)CURRENT_STATE.REGS[n]) >> imm12;
-            break;
-        case 3: // ROR
-            result = (CURRENT_STATE.REGS[n] >> imm12) | (CURRENT_STATE.REGS[n] << (64 - imm12));
-            break;
-        default:
-            printf("Invalid shift type\n");
-            return; // Invalid shift type, handle error
+    // Check which alias we have:
+    if (imms == 63) {
+        // LSR immediate
+        *is_lsr = true;
+        *shift = immr;          // shift amount
+    } else {
+        // LSL immediate
+        *is_lsr = false;
+        *shift = 64 - immr;     // shift amount
     }
-    NEXT_STATE.REGS[d] = result;
-    if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
+void handle_shift(uint32_t instr) {
+    bool is_lsr;
+    uint8_t shift_amt, rd, rn;
+    decode_lsl_lsr(instr, &is_lsr, &shift_amt, &rd, &rn);
+
+    if (is_lsr) {
+        // LSR (immediate)
+        NEXT_STATE.REGS[rd] = (CURRENT_STATE.REGS[rn] >> shift_amt);
+        printf("LSR X%d, X%d, #%u\n", rd, rn, shift_amt);
+    } else {
+        // LSL (immediate)
+        NEXT_STATE.REGS[rd] = (CURRENT_STATE.REGS[rn] << shift_amt);
+        printf("LSL X%d, X%d, #%u\n", rd, rn, shift_amt);
+    }
+
+    // If this isn't a branch, move to the next instruction
+    if (!branch_taken) {
+        NEXT_STATE.PC = CURRENT_STATE.PC + 4;
+    }
+}
+
+
+//void handle_shift(uint32_t instr) {
+//    uint8_t immr = (instr >> 16) & 0x3F;  // bits 21..16
+//    uint8_t imms = (instr >> 10) & 0x3F;  // bits 15..10
+//    uint8_t n = (instr >> 5) & 0x1F;            // bits 9..5
+//    uint8_t d = instr & 0x1F;                   // bits 4..0
+//
+//    if (imms == 63) {
+//        uint64_t result = CURRENT_STATE.REGS[n] >> imm12;
+//
+//    } else {
+//        uint64_t result = CURRENT_STATE.REGS[n] << imm12;
+//    }
+//    NEXT_STATE.REGS[d] = result;
+//   if (!branch_taken) NEXT_STATE.PC += 4;
+//}
 //void handle_lsl(uint32_t instr) {
 //    uint32_t d = instr & 0x1F;
 //    uint32_t n = (instr >> 5) & 0x1F;
