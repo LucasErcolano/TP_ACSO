@@ -26,14 +26,15 @@ void handle_eor(uint32_t);//✅
 void handle_orr(uint32_t);//✅ 
 void handle_b(uint32_t);
 void handle_br(uint32_t);
-void handle_b_cond(uint32_t);//✅ 
+void handle_b_cond(uint32_t);
 void handle_cbz(uint32_t);//✅ 
 void handle_cbnz(uint32_t);//✅ 
 void handle_ldur(uint32_t);//✅ 
 void handle_stur(uint32_t);//✅ 
 void handle_movz(uint32_t);//✅ 
 void handle_mul(uint32_t);//✅ 
-void handle_shifts(uint32_t);
+void handle_lsl(uint32_t);
+void handle_lsr(uint32_t);//?
 void handle_sturb(uint32_t);//✅ 
 void handle_sturh(uint32_t);//✅ 
 void handle_ldurb(uint32_t);//✅ 
@@ -46,7 +47,7 @@ void init_opcode_map() {
     if (opcode_map) return;
     opcode_map = hashmap_create();
     InstructionEntry entries[] = {
-        {0xD4500000, 8, handle_hlt},
+        {0xD4000000, 8, handle_hlt},
         {0x54000000, 8, handle_b_cond},
         {0x14000000, 6, handle_b},
         {0xD61F0000, 22, handle_br},
@@ -57,9 +58,9 @@ void init_opcode_map() {
         {0xEA000000, 8, handle_ands},
         {0xCA000000, 8, handle_eor},
         {0xAA000000, 8, handle_orr},
-        {0xD2800000, 9, handle_movz},
-        {0xD3400000, 9, handle_shifts},
-        {0xD3800000, 9, handle_shifts},
+        {0xD2800000, 11, handle_movz},
+        {0xD3400000, 11, handle_lsr},
+        {0xD3700000, 11, handle_lsl},
         {0xF8000000, 11, handle_stur},
         {0xF8400000, 11, handle_ldur},
         {0xB4000000, 8, handle_cbz},
@@ -184,6 +185,7 @@ void decode_i_group(uint32_t instr, uint32_t *imm12, uint32_t *shift, uint32_t *
     *d = instr & 0x1F;
     *n = (instr >> 5) & 0x1F;
 }
+
 void decode_r_group(uint32_t instr, uint32_t *opt, uint32_t *imm3, uint32_t *d, uint32_t *n, uint32_t *m) {
     *opt = (instr >> 13) & 0x7;
     *imm3 = (instr >> 10) & 0x7;
@@ -203,23 +205,25 @@ void decode_mem_access(uint32_t instr, int32_t *imm9, int32_t *n, int32_t *t) {
     *n = (instr >> 5) & 0x1F;
     *t = instr & 0x1F;
 }
-void decode_conditional_branch(uint32_t instr, uint32_t *t, int64_t *offset) {
+void decode_conditional_branch(uint32_t instr, uint32_t *t, uint32_t *offset) {
     *t = instr & 0x1F;
     int32_t imm = (instr >> 5) & 0x7FFFF;
     imm = sign_extend(imm, 19);
     *offset = (int64_t)imm << 2;
 }
 
-void calculate_mathOps(uint32_t n, uint32_t m, uint32_t opt, uint32_t imm3, bool isSubtraction, bool isImm) {
+uint64_t calculate_mathOps(uint32_t n, uint32_t m, uint32_t opt, uint32_t imm3, bool isSubtraction, bool isImm) {
     uint64_t op1 = (n == 31) ? CURRENT_STATE.REGS[31] : CURRENT_STATE.REGS[n];
-   
+    uint64_t op2;
+    
     if (isImm) {
-        uint64_t op2 = (opt == 1) ? (imm3 << 12) : imm3;
+        op2 = (opt == 1) ? (imm3 << 12) : imm3;
     } else {
-        uint64_t op2 = extend_register(CURRENT_STATE.REGS[m], opt, imm3);
+        op2 = extend_register(CURRENT_STATE.REGS[m], opt, imm3);
     }
     
     uint64_t res = isSubtraction ? op1 - op2 : op1 + op2;
+    return res;
 }
 
 void handle_hlt(uint32_t instr) {
@@ -230,7 +234,7 @@ void handle_hlt(uint32_t instr) {
 void handle_adds_imm(uint32_t instr) {
     uint32_t imm12, shift, d, n;
     decode_i_group(instr, &imm12, &shift, &d, &n);
-    calculate_mathOps(n, 0, shift, imm12, false, true);
+    uint64_t res = calculate_mathOps(n, 0, shift, imm12, false, true);
     NEXT_STATE.REGS[d] = res;
     update_flags(res);
     if (!branch_taken) NEXT_STATE.PC += 4;
@@ -239,7 +243,7 @@ void handle_adds_imm(uint32_t instr) {
 void handle_adds_reg(uint32_t instr) {
     uint32_t opt, imm3, d, n, m;
     decode_r_group(instr, &opt, &imm3, &d, &n, &m);
-    calculate_mathOps(n, m, opt, imm3, false, false);
+    uint64_t res = calculate_mathOps(n, m, opt, imm3, false, false);
     NEXT_STATE.REGS[d] = res;
     update_flags(res);
     if (!branch_taken) NEXT_STATE.PC += 4;
@@ -248,7 +252,7 @@ void handle_adds_reg(uint32_t instr) {
 void handle_subs_imm(uint32_t instr) {
     uint32_t imm12, shift, d, n;
     decode_i_group(instr, &imm12, &shift, &d, &n);
-    calculate_mathOps(n, 0, shift, imm12, true, true);
+    uint64_t res = calculate_mathOps(n, 0, shift, imm12, true, true);
     //if (d != 31)
     NEXT_STATE.REGS[d] = res;
     update_flags(res);
@@ -258,7 +262,7 @@ void handle_subs_imm(uint32_t instr) {
 void handle_subs_reg(uint32_t instr) {
     uint32_t opt, imm3, d, n, m;
     decode_r_group(instr, &opt, &imm3, &d, &n, &m);
-    calculate_mathOps(n, m, opt, imm3, true, false);
+    uint64_t res = calculate_mathOps(n, m, opt, imm3, true, false);
     //if (d != 31)
     NEXT_STATE.REGS[d] = res;
     update_flags(res);
@@ -363,7 +367,7 @@ void handle_ldur(uint32_t instr) {
     uint64_t addr = CURRENT_STATE.REGS[n] + imm9;
     NEXT_STATE.REGS[t] = mem_read_64(addr);
     if (!branch_taken) NEXT_STATE.PC += 4;
-}
+}           
 
 void handle_ldurb(uint32_t instr) {
     int32_t imm9, n, t;
@@ -469,13 +473,20 @@ void handle_cbnz(uint32_t instr) {
     }
 }
 
-void handle_shifts(uint32_t instr) {
-    uint32_t imm12, shift, d, n;
-    decode_i_group(instr, &imm12, &shift, &d, &n);
-    uint32_t imm6 = (instr >> 10) & 0x3F;
-    uint32_t type = (instr >> 22) & 0x1;
-
-    uint64_t res = (type == 0) ? (CURRENT_STATE.REGS[n] << imm6) : (CURRENT_STATE.REGS[n] >> imm6);
-    NEXT_STATE.REGS[d] = res;
+void handle_lsl(uint32_t instr) {
+    uint32_t imm12, d, n;
+    decode_i_group(instr, &imm12, 0, &d, &n);
+    uint64_t result = CURRENT_STATE.REGS[n] << imm12;
+    NEXT_STATE.REGS[d] = result;
     if (!branch_taken) NEXT_STATE.PC += 4;
 }
+
+void handle_lsr(uint32_t instr) {
+    uint32_t imm12, d, n;
+    decode_i_group(instr, &imm12, 0, &d, &n);
+    uint64_t result = CURRENT_STATE.REGS[n] >> imm12;
+    NEXT_STATE.REGS[d] = result;
+    if (!branch_taken) NEXT_STATE.PC += 4;
+}
+
+
