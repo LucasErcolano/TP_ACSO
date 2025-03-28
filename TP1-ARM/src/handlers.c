@@ -102,7 +102,7 @@ void handle_b(uint32_t instr) {
 
 void handle_br(uint32_t instr) {
     uint32_t n = (instr >> 5) & 0x1F;
-    CURRENT_STATE.PC = CURRENT_STATE.REGS[n];
+    NEXT_STATE.PC = CURRENT_STATE.REGS[n];
     branch_taken = 1;
 }
 
@@ -241,25 +241,13 @@ void handle_shift(uint32_t instr) {
     uint32_t d = instr & 0x1F;
     uint32_t n = (instr >> 5) & 0x1F;
     uint32_t imm12 = (instr >> 16) & 0x3F;
-    uint32_t shift_type = (instr >> 22) & 0x3;
+    uint32_t imms = (instr >> 10) & 0x3F;
 
     uint64_t result;
-    switch (shift_type) {
-        case 0: // LSL
-            result = CURRENT_STATE.REGS[n] << imm12;
-            break;
-        case 1: // LSR
-            result = CURRENT_STATE.REGS[n] >> imm12;
-            break;
-        case 2: // ASR
-            result = ((int64_t)CURRENT_STATE.REGS[n]) >> imm12;
-            break;
-        case 3: // ROR
-            result = (CURRENT_STATE.REGS[n] >> imm12) | (CURRENT_STATE.REGS[n] << (64 - imm12));
-            break;
-        default:
-            printf("Invalid shift type\n");
-            return; // Invalid shift type, handle error
+    if (imm12 == 0b111111) {
+        result = CURRENT_STATE.REGS[n] >> imm12;
+    } else {
+        result = CURRENT_STATE.REGS[n] << imm12;
     }
     NEXT_STATE.REGS[d] = result;
     if (!branch_taken) NEXT_STATE.PC += 4;
