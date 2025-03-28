@@ -26,15 +26,15 @@ void handle_eor(uint32_t);//✅
 void handle_orr(uint32_t);//✅ 
 void handle_b(uint32_t);
 void handle_br(uint32_t);
-void handle_b_cond(uint32_t);
+void handle_b_cond(uint32_t);//✅ 
 void handle_cbz(uint32_t);//✅ 
 void handle_cbnz(uint32_t);//✅ 
 void handle_ldur(uint32_t);//✅ 
 void handle_stur(uint32_t);//✅ 
 void handle_movz(uint32_t);//✅ 
 void handle_mul(uint32_t);//✅ 
-void handle_lsl(uint32_t);
-void handle_lsr(uint32_t);//?
+void handle_lsl(uint32_t);//✅ 
+void handle_lsr(uint32_t);//✅
 void handle_sturb(uint32_t);//✅ 
 void handle_sturh(uint32_t);//✅ 
 void handle_ldurb(uint32_t);//✅ 
@@ -253,9 +253,10 @@ void handle_subs_imm(uint32_t instr) {
     uint32_t imm12, shift, d, n;
     decode_i_group(instr, &imm12, &shift, &d, &n);
     uint64_t res = calculate_mathOps(n, 0, shift, imm12, true, true);
-    //if (d != 31)
-    NEXT_STATE.REGS[d] = res;
-    update_flags(res);
+    update_flags(res);            
+    if (d != 31) {
+        NEXT_STATE.REGS[d] = res;
+    }
     if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
@@ -263,9 +264,10 @@ void handle_subs_reg(uint32_t instr) {
     uint32_t opt, imm3, d, n, m;
     decode_r_group(instr, &opt, &imm3, &d, &n, &m);
     uint64_t res = calculate_mathOps(n, m, opt, imm3, true, false);
-    //if (d != 31)
-    NEXT_STATE.REGS[d] = res;
-    update_flags(res);
+    update_flags(res);            
+    if (d != 31) {
+        NEXT_STATE.REGS[d] = res;
+    }
     if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
@@ -318,7 +320,7 @@ void handle_orr(uint32_t instr) {
 void handle_b(uint32_t instr) {
     int32_t imm26 = instr & 0x3FFFFFF;
     int64_t offset = ((int64_t)(imm26 << 6)) >> 4;
-    CURRENT_STATE.PC += offset;
+    NEXT_STATE.PC += offset;
     branch_taken = 1;
 }
 
@@ -394,6 +396,7 @@ void handle_b_cond(uint32_t instr) {
     imm19 = sign_extend(imm19, 19);
     int64_t offset = (int64_t)imm19 << 2;
     uint32_t cond = instr & 0xF;
+
     int take_branch = 0;
     switch (cond) {
         case 0x0: if (CURRENT_STATE.FLAG_Z == 1) take_branch = 1; break;
@@ -407,7 +410,7 @@ void handle_b_cond(uint32_t instr) {
         NEXT_STATE.PC = CURRENT_STATE.PC + offset;
         branch_taken = 1;
     } else {
-        NEXT_STATE.PC = CURRENT_STATE.PC + 4;
+        NEXT_STATE.PC += 4;
     }
 }
 
@@ -474,8 +477,10 @@ void handle_cbnz(uint32_t instr) {
 }
 
 void handle_lsl(uint32_t instr) {
-    uint32_t imm12, d, n;
-    decode_i_group(instr, &imm12, 0, &d, &n);
+    uint32_t d = instr & 0x1F;
+    uint32_t n = (instr >> 5) & 0x1F;
+    uint32_t imm12 = 64 - ((instr >> 16) & 0x3F);
+
     uint64_t result = CURRENT_STATE.REGS[n] << imm12;
     NEXT_STATE.REGS[d] = result;
     if (!branch_taken) NEXT_STATE.PC += 4;
