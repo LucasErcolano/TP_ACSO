@@ -5,11 +5,8 @@
 #include "decode.h"
 #include "handlers.h"
 
-extern int branch_taken;
-
 void handle_hlt(uint32_t instr) {
     RUN_BIT = 0;
-    if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
 void handle_adds_imm(uint32_t instr) {
@@ -18,7 +15,6 @@ void handle_adds_imm(uint32_t instr) {
     uint64_t res = calculate_mathOps(n, 0, shift, imm12, 0, 1);
     NEXT_STATE.REGS[d] = res;
     update_flags(res);
-    if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
 void handle_adds_reg(uint32_t instr) {
@@ -27,7 +23,6 @@ void handle_adds_reg(uint32_t instr) {
     uint64_t res = calculate_mathOps(n, m, opt, imm3, 0, 0);
     NEXT_STATE.REGS[d] = res;
     update_flags(res);
-    if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
 void handle_subs_imm(uint32_t instr) {
@@ -38,7 +33,6 @@ void handle_subs_imm(uint32_t instr) {
     if (d != 31) {
         NEXT_STATE.REGS[d] = res;
     }
-    if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
 void handle_subs_reg(uint32_t instr) {
@@ -49,7 +43,6 @@ void handle_subs_reg(uint32_t instr) {
     if (d != 31) {
         NEXT_STATE.REGS[d] = res;
     }
-    if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
 void handle_ands(uint32_t instr) {
@@ -66,7 +59,6 @@ void handle_ands(uint32_t instr) {
     uint64_t res = op1 & op2;
     NEXT_STATE.REGS[d] = res;
     update_flags(res);
-    if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
 void handle_eor(uint32_t instr) {
@@ -83,27 +75,23 @@ void handle_eor(uint32_t instr) {
     uint64_t res = op1 ^ op2;
     NEXT_STATE.REGS[d] = res;
     update_flags(res);
-    if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
 void handle_orr(uint32_t instr) {
     uint32_t opt, imm3, d, n, m;
     decode_r_group(instr, &opt, &imm3, &d, &n, &m);
     NEXT_STATE.REGS[d] = CURRENT_STATE.REGS[n] | CURRENT_STATE.REGS[m];
-    if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
 void handle_b(uint32_t instr) {
     int32_t imm26 = instr & 0x3FFFFFF;
     int64_t offset = ((int64_t)(imm26 << 6)) >> 4;
-    NEXT_STATE.PC += offset;
-    branch_taken = 1;
+    NEXT_STATE.PC += offset - 4;
 }
 
 void handle_br(uint32_t instr) {
     uint32_t n = (instr >> 5) & 0x1F;
-    NEXT_STATE.PC = CURRENT_STATE.REGS[n];
-    branch_taken = 1;
+    NEXT_STATE.PC = CURRENT_STATE.REGS[n] - 4;
 }
 
 void handle_stur(uint32_t instr) {
@@ -112,7 +100,6 @@ void handle_stur(uint32_t instr) {
     imm9 = sign_extend(imm9, 64);
     uint64_t addr = CURRENT_STATE.REGS[n] + imm9;
     mem_write_64(addr, CURRENT_STATE.REGS[t]);
-    if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
 void handle_sturb(uint32_t instr) {
@@ -121,7 +108,6 @@ void handle_sturb(uint32_t instr) {
     imm9 = sign_extend(imm9, 64);
     uint64_t addr = CURRENT_STATE.REGS[n] + imm9;
     mem_write_8(addr, (uint8_t)CURRENT_STATE.REGS[t]);
-    if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
 void handle_sturh(uint32_t instr) {
@@ -130,7 +116,6 @@ void handle_sturh(uint32_t instr) {
     imm9 = sign_extend(imm9, 64);
     uint64_t addr = CURRENT_STATE.REGS[n] + imm9;
     mem_write_16(addr, (uint16_t)CURRENT_STATE.REGS[t]);
-    if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
 void handle_ldur(uint32_t instr) {
@@ -139,7 +124,6 @@ void handle_ldur(uint32_t instr) {
     imm9 = sign_extend(imm9, 64);
     uint64_t addr = CURRENT_STATE.REGS[n] + imm9;
     NEXT_STATE.REGS[t] = mem_read_64(addr);
-    if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
 void handle_ldurb(uint32_t instr) {
@@ -148,7 +132,6 @@ void handle_ldurb(uint32_t instr) {
     imm9 = sign_extend(imm9, 64);
     uint64_t addr = CURRENT_STATE.REGS[n] + imm9;
     NEXT_STATE.REGS[t] = mem_read_8(addr);
-    if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
 void handle_ldurh(uint32_t instr) {
@@ -157,7 +140,6 @@ void handle_ldurh(uint32_t instr) {
     imm9 = sign_extend(imm9, 64);
     uint64_t addr = CURRENT_STATE.REGS[n] + imm9;
     NEXT_STATE.REGS[t] = mem_read_16(addr);
-    if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
 void handle_b_cond(uint32_t instr) {
@@ -174,12 +156,8 @@ void handle_b_cond(uint32_t instr) {
         case 0xC: if ((CURRENT_STATE.FLAG_Z == 0) && (CURRENT_STATE.FLAG_N == 0)) take_branch = 1; break;
         case 0xD: if ((CURRENT_STATE.FLAG_Z == 1) || (CURRENT_STATE.FLAG_N != 0)) take_branch = 1; break;
     }
-    if (take_branch) {
-        NEXT_STATE.PC = CURRENT_STATE.PC + offset;
-        branch_taken = 1;
-    } else {
-        NEXT_STATE.PC += 4;
-    }
+    if (take_branch)
+        NEXT_STATE.PC = CURRENT_STATE.PC + offset - 4;
 }
 
 void handle_movz(uint32_t instr) {
@@ -189,7 +167,6 @@ void handle_movz(uint32_t instr) {
     if (hw != 0)
         printf("MOVZ: solo se implementa el caso hw == 0.\n");
     NEXT_STATE.REGS[d] = imm16;
-    if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
 void handle_add_imm(uint32_t instr) {
@@ -197,7 +174,6 @@ void handle_add_imm(uint32_t instr) {
     decode_i_group(instr, &imm12, &shift, &d, &n);
     uint64_t imm = (shift == 1) ? (imm12 << 12) : imm12;
     NEXT_STATE.REGS[d] = CURRENT_STATE.REGS[n] + imm; 
-    if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
 void handle_add_reg(uint32_t instr) {
@@ -205,36 +181,26 @@ void handle_add_reg(uint32_t instr) {
     decode_r_group(instr, &opt, &imm3, &d, &n, &m);
     uint64_t res = CURRENT_STATE.REGS[n] + extend_register(CURRENT_STATE.REGS[m], opt, imm3);
     NEXT_STATE.REGS[d] = res;
-    if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
 void handle_mul(uint32_t instr) {
     uint32_t opt, imm3, d, n, m;
     decode_r_group(instr, &opt, &imm3, &d, &n, &m);
     NEXT_STATE.REGS[d] = CURRENT_STATE.REGS[n] * CURRENT_STATE.REGS[m];
-    if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
 void handle_cbz(uint32_t instr) {
     uint32_t t, offset;
     decode_conditional_branch(instr, &t, &offset);
-    if (CURRENT_STATE.REGS[t] == 0) {
-        NEXT_STATE.PC = CURRENT_STATE.PC + offset;
-        branch_taken = 1;
-    } else {
-        NEXT_STATE.PC += 4;
-    }
+    if (CURRENT_STATE.REGS[t] == 0)
+        NEXT_STATE.PC = CURRENT_STATE.PC + offset - 4;
 }
 
 void handle_cbnz(uint32_t instr) {
     uint32_t t, offset;
     decode_conditional_branch(instr, &t, &offset);
-    if (CURRENT_STATE.REGS[t] != 0) {
-        NEXT_STATE.PC = CURRENT_STATE.PC + offset;
-        branch_taken = 1;
-    } else {
-        NEXT_STATE.PC += 4;
-    }
+    if (CURRENT_STATE.REGS[t] != 0)
+        NEXT_STATE.PC = CURRENT_STATE.PC + offset - 4;
 }
 
 void handle_shift(uint32_t instr) {
@@ -250,7 +216,6 @@ void handle_shift(uint32_t instr) {
         result = CURRENT_STATE.REGS[n] << imm12;
     }
     NEXT_STATE.REGS[d] = result;
-    if (!branch_taken) NEXT_STATE.PC += 4;
 }
 
 //void handle_lsl(uint32_t instr) {
