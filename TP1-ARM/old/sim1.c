@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <stdint.h>
+#include "stdbool.h"
 #include "shell.h"
 #include "hashmap.h"
 
@@ -16,68 +16,67 @@ typedef struct {
 HashMap *opcode_map = NULL;
 int branch_taken = 0;
 
-void handle_hlt(uint32_t);
-void handle_adds_imm(uint32_t);
-void handle_adds_reg(uint32_t);
-void handle_subs_imm(uint32_t);
-void handle_subs_reg(uint32_t);
-void handle_ands(uint32_t);
-void handle_eor(uint32_t);
-void handle_orr(uint32_t);
+void handle_hlt(uint32_t); //✅ 
+void handle_adds_imm(uint32_t);//✅ 
+void handle_adds_reg(uint32_t);//✅ 
+void handle_subs_imm(uint32_t);//✅ 
+void handle_subs_reg(uint32_t);//✅ 
+void handle_ands(uint32_t);//✅ 
+void handle_eor(uint32_t);//✅ 
+void handle_orr(uint32_t);//✅ 
 void handle_b(uint32_t);
 void handle_br(uint32_t);
-void handle_b_cond(uint32_t);
-void handle_cbz(uint32_t);
-void handle_cbnz(uint32_t);
-void handle_ldur(uint32_t);
-void handle_stur(uint32_t);
-void handle_movz(uint32_t);
-void handle_mul(uint32_t);
-void handle_lsl(uint32_t);
-void handle_lsr(uint32_t);
-void handle_sturb(uint32_t);
-void handle_sturh(uint32_t);
-void handle_ldurb(uint32_t);
-void handle_ldurh(uint32_t);
-void handle_add_reg(uint32_t);
-void handle_add_imm(uint32_t);
+void handle_b_cond(uint32_t);//✅ 
+void handle_cbz(uint32_t);//✅ 
+void handle_cbnz(uint32_t);//✅ 
+void handle_ldur(uint32_t);//✅ 
+void handle_stur(uint32_t);//✅ 
+void handle_movz(uint32_t);//✅ 
+void handle_mul(uint32_t);//✅ 
+void handle_lsl(uint32_t);//✅ 
+void handle_lsr(uint32_t);//✅
+void handle_sturb(uint32_t);//✅ 
+void handle_sturh(uint32_t);//✅ 
+void handle_ldurb(uint32_t);//✅ 
+void handle_ldurh(uint32_t);//✅ 
+void handle_add_reg(uint32_t);//✅ 
+void handle_add_imm(uint32_t);//✅ 
 
 // Inicializa el mapa de opcodes usando como llave (longitud, opcode reducido)
 void init_opcode_map() {
     if (opcode_map) return;
     opcode_map = hashmap_create();
     InstructionEntry entries[] = {
-        {0xD61F00, 22, handle_br},
-        {0x380, 11, handle_sturb},
-        {0x384, 11, handle_ldurb},
-        {0x780, 11, handle_sturh},
-        {0x784, 11, handle_ldurh},
-        {0x8B0, 11, handle_add_reg},
-        {0x9B0, 11, handle_mul},
-        {0xF80, 11, handle_stur},
-        {0xF84, 11, handle_ldur},
-        {0xD28, 9, handle_movz},
-        {0xD34, 9, handle_lsr},
-        {0xD37, 9, handle_lsl},
-        {0x54, 8, handle_b_cond},
-        {0x91, 8, handle_add_imm},
-        {0xAA, 8, handle_orr},
-        {0xAB, 8, handle_adds_reg},
-        {0xB1, 8, handle_adds_imm},
-        {0xB4, 8, handle_cbz},
-        {0xB5, 8, handle_cbnz},
-        {0xCA, 8, handle_eor},
-        {0xEA, 8, handle_ands},
-        {0xEB, 8, handle_subs_reg},
-        {0xF1, 8, handle_subs_imm},
-        {0xD4, 8, handle_hlt},
-        {0x14, 6, handle_b}
-
+        {0xD4000000, 8, handle_hlt},
+        {0x54000000, 8, handle_b_cond},
+        {0x14000000, 6, handle_b},
+        {0xD61F0000, 22, handle_br},
+        {0xB1000000, 8, handle_adds_imm},
+        {0xAB000000, 8, handle_adds_reg},
+        {0xF1000000, 8, handle_subs_imm},
+        {0xEB000000, 8, handle_subs_reg},
+        {0xEA000000, 8, handle_ands},
+        {0xCA000000, 8, handle_eor},
+        {0xAA000000, 8, handle_orr},
+        {0xD2800000, 11, handle_movz},
+        {0xD3400000, 11, handle_lsr},
+        {0xD3700000, 11, handle_lsl},
+        {0xF8000000, 11, handle_stur},
+        {0xF8400000, 11, handle_ldur},
+        {0xB4000000, 8, handle_cbz},
+        {0xB5000000, 8, handle_cbnz},
+        {0x9B000000, 11, handle_mul},
+        {0x38000000, 11, handle_sturb},
+        {0x78000000, 11, handle_sturh},
+        {0x38400000, 11, handle_ldurb},
+        {0x78400000, 11, handle_ldurh},
+        {0x8B000000, 11, handle_add_reg},
+        {0x91000000, 8, handle_add_imm}
     };
     int n = sizeof(entries) / sizeof(entries[0]);
     for (int i = 0; i < n; i++) {
         uint32_t len = entries[i].length;
-        uint32_t opcode_key = entries[i].pattern;
+        uint32_t opcode_key = entries[i].pattern >> (32 - len);
         hashmap_put(opcode_map, len, opcode_key, entries[i].handler);
     }
 }
@@ -88,7 +87,6 @@ InstructionHandler decode_instruction(uint32_t instruction) {
     for (int i = 0; i < sizeof(lengths) / sizeof(lengths[0]); i++) {
         int len = lengths[i];
         uint32_t opcode_key = instruction >> (32 - len);
-        opcode_key <<= ((32 - len) % 4);
         InstructionHandler handler = hashmap_get(opcode_map, len, opcode_key);
         if (handler)
             return handler;
@@ -147,32 +145,11 @@ uint16_t mem_read_16(uint64_t addr) {
 }
 
 uint64_t mem_read_64(uint64_t addr) {
-    // Ensure 8-byte alignment by masking the lowest 3 bits
-    uint64_t aligned_addr = addr & ~0x7;
-    
-    // Calculate the offset within the 8-byte block
-    uint32_t offset = addr & 0x7;
-    
-    if (offset) {
-        // If not aligned, we need to do a more complex read
-        uint64_t low_part = mem_read_32(aligned_addr);
-        uint64_t high_part = mem_read_32(aligned_addr + 4);
-        
-        if (offset <= 4) {
-            // Low offset case
-            return (high_part << (8 * (4 - offset))) | 
-                   (low_part >> (8 * offset));
-        } else {
-            // High offset case
-            return (high_part >> (8 * (offset - 4))) | 
-                   (low_part << (8 * (8 - offset)));
-        }
-    } else {
-        // If already aligned, do standard 64-bit read
-        uint64_t low_part = mem_read_32(addr);
-        uint64_t high_part = mem_read_32(addr + 4);
-        return low_part | (high_part << 32);
-    }
+    if (addr & 0x7)
+        printf("Warning: Unaligned 64-bit read at 0x%" PRIx64 "\n", addr);
+    uint32_t low = mem_read_32(addr);
+    uint32_t high = mem_read_32(addr + 4);
+    return ((uint64_t)high << 32) | low;
 }
 
 void mem_write_8(uint64_t addr, uint8_t value) {
@@ -196,36 +173,10 @@ void mem_write_16(uint64_t addr, uint16_t value) {
 }
 
 void mem_write_64(uint64_t addr, uint64_t value) {
-    // Ensure 8-byte alignment by masking the lowest 3 bits
-    uint64_t aligned_addr = addr & ~0x7;
-    
-    // Calculate the offset within the 8-byte block
-    uint32_t offset = addr & 0x7;
-    
-    if (offset) {
-        // If not aligned, we need to do a more complex write
-        if (offset <= 4) {
-            // Write first part
-            mem_write_32(aligned_addr, value & 0xFFFFFFFF);
-            // Write second part
-            mem_write_32(aligned_addr + 4, 
-                (value >> (8 * (4 - offset))) | 
-                (mem_read_32(aligned_addr + 4) & ((1U << (8 * offset)) - 1))
-            );
-        } else {
-            // Write first part
-            mem_write_32(aligned_addr, 
-                (mem_read_32(aligned_addr) & ((1U << (8 * (8 - offset))) - 1)) | 
-                ((value << (8 * (8 - offset))) & ~((1U << (8 * (8 - offset))) - 1))
-            );
-            // Write second part
-            mem_write_32(aligned_addr + 4, value >> (8 * (8 - offset)));
-        }
-    } else {
-        // If already aligned, do standard 64-bit write
-        mem_write_32(addr, value & 0xFFFFFFFF);
-        mem_write_32(addr + 4, (value >> 32) & 0xFFFFFFFF);
-    }
+    if (addr & 0x7)
+        printf("Warning: Unaligned 64-bit write at 0x%" PRIx64 "\n", addr);
+    mem_write_32(addr, value & 0xFFFFFFFF);
+    mem_write_32(addr + 4, (value >> 32) & 0xFFFFFFFF);
 }
 
 void decode_i_group(uint32_t instr, uint32_t *imm12, uint32_t *shift, uint32_t *d, uint32_t *n) {
