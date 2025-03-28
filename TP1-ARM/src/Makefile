@@ -1,4 +1,4 @@
-sim: decode.c handler.c shell.c sim.c
+sim: decode.c handlers.c shell.c sim.c hashmap.c
 	gcc -g -O0 $^ -o $@
 
 .PHONY: clean
