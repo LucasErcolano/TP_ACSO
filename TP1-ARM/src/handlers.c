@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include "shell.h"
 #include "decode.h"
 #include "handlers.h"
@@ -202,38 +203,30 @@ void handle_cbnz(uint32_t instr) {
     if (CURRENT_STATE.REGS[t] != 0)
         NEXT_STATE.PC = CURRENT_STATE.PC + offset - 4;
 }
+void decode_lsl_lsr(uint32_t instr, bool *is_lsr, uint8_t *shift, uint8_t *rd, uint8_t *rn) {
+    uint8_t immr = (instr >> 16) & 0x3F; 
+    uint8_t imms = (instr >> 10) & 0x3F; 
+    *rn = (instr >> 5) & 0x1F;           
+    *rd = instr & 0x1F;                  
 
-void handle_shift(uint32_t instr) {
-    uint32_t d = instr & 0x1F;
-    uint32_t n = (instr >> 5) & 0x1F;
-    uint32_t imm12 = (instr >> 16) & 0x3F;
-    uint32_t imms = (instr >> 10) & 0x3F;
-
-    uint64_t result;
-    if (imm12 == 0b111111) {
-        result = CURRENT_STATE.REGS[n] >> imm12;
+    if (imms == 63) {
+        *is_lsr = true;
+        *shift = immr;     
     } else {
-        result = CURRENT_STATE.REGS[n] << imm12;
+        *is_lsr = false;
+        *shift = 64 - immr; 
     }
-    NEXT_STATE.REGS[d] = result;
 }
 
-//void handle_lsl(uint32_t instr) {
-//    uint32_t d = instr & 0x1F;
-//    uint32_t n = (instr >> 5) & 0x1F;
-//    uint32_t imm12 = 64 - ((instr >> 16) & 0x3F);
-//
-//    uint64_t result = CURRENT_STATE.REGS[n] << imm12;
-//    NEXT_STATE.REGS[d] = result;
-//    if (!branch_taken) NEXT_STATE.PC += 4;
-//}
-//
-//void handle_lsr(uint32_t instr) {
-//    uint32_t d = instr & 0x1F;
-//    uint32_t n = (instr >> 5) & 0x1F;
-//    uint32_t imm12 = (instr >> 16) & 0x3F;
-//
-//    uint64_t result = CURRENT_STATE.REGS[n] >> imm12;
-//    NEXT_STATE.REGS[d] = result;
-//    if (!branch_taken) NEXT_STATE.PC += 4;
-//}
+void handle_shift(uint32_t instr) {
+    bool is_lsr;
+    uint8_t shift_amt, rd, rn;
+    decode_lsl_lsr(instr, &is_lsr, &shift_amt, &rd, &rn);
+
+    if (is_lsr) {
+        NEXT_STATE.REGS[rd] = (CURRENT_STATE.REGS[rn] >> shift_amt);
+    } else {
+        NEXT_STATE.REGS[rd] = (CURRENT_STATE.REGS[rn] << shift_amt);
+    }
+}
+
