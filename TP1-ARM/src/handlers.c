@@ -47,39 +47,28 @@ void handle_subs_reg(uint32_t instr) {
 }
 
 void handle_ands(uint32_t instr) {
-    uint32_t shift, imm6, d, n, m;
-    decode_shifted_register(instr, &shift, &imm6, &d, &n, &m);
+    uint32_t imm6, d, n, m;
+    decode_shifted_register(instr, &imm6, &d, &n, &m);
     uint64_t op1 = CURRENT_STATE.REGS[n];
-    uint64_t op2 = CURRENT_STATE.REGS[m];
-    switch (shift) {
-        case 0: op2 <<= imm6; break;
-        case 1: op2 >>= imm6; break;
-        case 2: op2 = ((int64_t)op2) >> imm6; break;
-        case 3: op2 = (op2 >> imm6) | (op2 << (64 - imm6)); break;
-    }
+    uint64_t op2 = CURRENT_STATE.REGS[m] <<= imm6;
     uint64_t res = op1 & op2;
     NEXT_STATE.REGS[d] = res;
     update_flags(res);
 }
 
 void handle_eor(uint32_t instr) {
-    uint32_t shift, imm6, d, n, m;
-    decode_shifted_register(instr, &shift, &imm6, &d, &n, &m);
+    uint32_t  imm6, d, n, m;
+    decode_shifted_register(instr, &imm6, &d, &n, &m);
     uint64_t op1 = CURRENT_STATE.REGS[n];
     uint64_t op2 = CURRENT_STATE.REGS[m];
-    switch (shift) {
-        case 0: op2 = (imm6 == 0) ? op2 : (op2 << imm6); break;
-        case 1: op2 = (imm6 == 0) ? op2 : (op2 >> imm6); break;
-        case 2: op2 = (imm6 == 0) ? op2 : ((int64_t)op2 >> imm6); break;
-        case 3: op2 = (imm6 == 0) ? op2 : ((op2 >> imm6) | (op2 << (64 - imm6))); break;
-    }
+    op2 = (imm6 == 0) ? op2 : (op2 << imm6); 
     uint64_t res = op1 ^ op2;
     NEXT_STATE.REGS[d] = res;
 }
 
 void handle_orr(uint32_t instr) {
-    uint32_t opt, imm3, d, n, m;
-    decode_r_group(instr, &opt, &imm3, &d, &n, &m);
+    uint32_t d, n, m;
+    decode_shifted_register(instr, NULL, &d, &n, &m);
     NEXT_STATE.REGS[d] = CURRENT_STATE.REGS[n] | CURRENT_STATE.REGS[m];
 }
 

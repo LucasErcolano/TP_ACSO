@@ -6,7 +6,7 @@
 
 void decode_i_group(uint32_t instr, uint32_t *imm12, uint32_t *shift, uint32_t *d, uint32_t *n);
 void decode_r_group(uint32_t instr, uint32_t *opt, uint32_t *imm3, uint32_t *d, uint32_t *n, uint32_t *m);
-void decode_shifted_register(uint32_t instr, uint32_t *shift, uint32_t *imm6, uint32_t *d, uint32_t *n, uint32_t *m);
+void decode_shifted_register(uint32_t instr, uint32_t *imm6, uint32_t *d, uint32_t *n, uint32_t *m);
 void decode_mem_access(uint32_t instr, int32_t *imm9, int32_t *n, int32_t *t);
 void decode_conditional_branch(uint32_t instr, uint32_t *t, uint32_t *offset);
 void decode_lsl_lsr(uint32_t instr, bool *is_lsr, uint8_t *shift, uint8_t *rd, uint8_t *rn);
