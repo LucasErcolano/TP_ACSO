@@ -75,7 +75,6 @@ void handle_eor(uint32_t instr) {
     }
     uint64_t res = op1 ^ op2;
     NEXT_STATE.REGS[d] = res;
-    update_flags(res);
 }
 
 void handle_orr(uint32_t instr) {
