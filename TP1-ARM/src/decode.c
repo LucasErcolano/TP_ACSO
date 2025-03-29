@@ -19,8 +19,7 @@ void decode_r_group(uint32_t instr, uint32_t *opt, uint32_t *imm3, uint32_t *d, 
     *m = (instr >> 16) & 0x1F;
 }
 
-void decode_shifted_register(uint32_t instr, uint32_t *shift, uint32_t *imm6, uint32_t *d, uint32_t *n, uint32_t *m) {
-    *shift = (instr >> 22) & 0x3;
+void decode_shifted_register(uint32_t instr, uint32_t *imm6, uint32_t *d, uint32_t *n, uint32_t *m) {
     *imm6 = (instr >> 10) & 0x3F;
     *d = instr & 0x1F;
     *n = (instr >> 5) & 0x1F;
@@ -38,6 +37,21 @@ void decode_conditional_branch(uint32_t instr, uint32_t *t, uint32_t *offset) {
     int32_t imm = (instr >> 5) & 0x7FFFF;
     imm = sign_extend(imm, 19);
     *offset = (int64_t)imm << 2;
+}
+
+void decode_lsl_lsr(uint32_t instr, bool *is_lsr, uint8_t *shift, uint8_t *rd, uint8_t *rn) {
+    uint8_t immr = (instr >> 16) & 0x3F; 
+    uint8_t imms = (instr >> 10) & 0x3F; 
+    *rn = (instr >> 5) & 0x1F;           
+    *rd = instr & 0x1F;                  
+
+    if (imms == 63) {
+        *is_lsr = true;
+        *shift = immr;     
+    } else {
+        *is_lsr = false;
+        *shift = 64 - immr; 
+    }
 }
 
 int64_t sign_extend(int64_t value, int bits) {

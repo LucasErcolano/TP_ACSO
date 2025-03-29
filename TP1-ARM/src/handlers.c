@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include "shell.h"
 #include "decode.h"
 #include "handlers.h"
@@ -48,40 +49,28 @@ void handle_subs_reg(uint32_t instr) {
 }
 
 void handle_ands(uint32_t instr) {
-    uint32_t shift, imm6, d, n, m;
-    decode_shifted_register(instr, &shift, &imm6, &d, &n, &m);
+    uint32_t imm6, d, n, m;
+    decode_shifted_register(instr, &imm6, &d, &n, &m);
     uint64_t op1 = CURRENT_STATE.REGS[n];
-    uint64_t op2 = CURRENT_STATE.REGS[m];
-    switch (shift) {
-        case 0: op2 <<= imm6; break;
-        case 1: op2 >>= imm6; break;
-        case 2: op2 = ((int64_t)op2) >> imm6; break;
-        case 3: op2 = (op2 >> imm6) | (op2 << (64 - imm6)); break;
-    }
+    uint64_t op2 = CURRENT_STATE.REGS[m] <<= imm6;
     uint64_t res = op1 & op2;
     NEXT_STATE.REGS[d] = res;
     update_flags(res);
 }
 
 void handle_eor(uint32_t instr) {
-    uint32_t shift, imm6, d, n, m;
-    decode_shifted_register(instr, &shift, &imm6, &d, &n, &m);
+    uint32_t  imm6, d, n, m;
+    decode_shifted_register(instr, &imm6, &d, &n, &m);
     uint64_t op1 = CURRENT_STATE.REGS[n];
     uint64_t op2 = CURRENT_STATE.REGS[m];
-    switch (shift) {
-        case 0: op2 = (imm6 == 0) ? op2 : (op2 << imm6); break;
-        case 1: op2 = (imm6 == 0) ? op2 : (op2 >> imm6); break;
-        case 2: op2 = (imm6 == 0) ? op2 : ((int64_t)op2 >> imm6); break;
-        case 3: op2 = (imm6 == 0) ? op2 : ((op2 >> imm6) | (op2 << (64 - imm6))); break;
-    }
+    op2 = (imm6 == 0) ? op2 : (op2 << imm6); 
     uint64_t res = op1 ^ op2;
     NEXT_STATE.REGS[d] = res;
-    update_flags(res);
 }
 
 void handle_orr(uint32_t instr) {
-    uint32_t opt, imm3, d, n, m;
-    decode_r_group(instr, &opt, &imm3, &d, &n, &m);
+    uint32_t d, n, m;
+    decode_shifted_register(instr, NULL, &d, &n, &m);
     NEXT_STATE.REGS[d] = CURRENT_STATE.REGS[n] | CURRENT_STATE.REGS[m];
 }
 
@@ -209,36 +198,14 @@ void handle_cbnz(uint32_t instr) {
 }
 
 void handle_shift(uint32_t instr) {
-    uint32_t d = instr & 0x1F;
-    uint32_t n = (instr >> 5) & 0x1F;
-    uint32_t imm12 = (instr >> 16) & 0x3F;
-    uint32_t imms = (instr >> 10) & 0x3F;
+    bool is_lsr;
+    uint8_t shift_amt, rd, rn;
+    decode_lsl_lsr(instr, &is_lsr, &shift_amt, &rd, &rn);
 
-    uint64_t result;
-    if (imm12 == 0b111111) {
-        result = CURRENT_STATE.REGS[n] >> imm12;
+    if (is_lsr) {
+        NEXT_STATE.REGS[rd] = (CURRENT_STATE.REGS[rn] >> shift_amt);
     } else {
-        result = CURRENT_STATE.REGS[n] << imm12;
+        NEXT_STATE.REGS[rd] = (CURRENT_STATE.REGS[rn] << shift_amt);
     }
-    NEXT_STATE.REGS[d] = result;
 }
 
-//void handle_lsl(uint32_t instr) {
-//    uint32_t d = instr & 0x1F;
-//    uint32_t n = (instr >> 5) & 0x1F;
-//    uint32_t imm12 = 64 - ((instr >> 16) & 0x3F);
-//
-//    uint64_t result = CURRENT_STATE.REGS[n] << imm12;
-//    NEXT_STATE.REGS[d] = result;
-//    if (!branch_taken) NEXT_STATE.PC += 4;
-//}
-//
-//void handle_lsr(uint32_t instr) {
-//    uint32_t d = instr & 0x1F;
-//    uint32_t n = (instr >> 5) & 0x1F;
-//    uint32_t imm12 = (instr >> 16) & 0x3F;
-//
-//    uint64_t result = CURRENT_STATE.REGS[n] >> imm12;
-//    NEXT_STATE.REGS[d] = result;
-//    if (!branch_taken) NEXT_STATE.PC += 4;
-//}
