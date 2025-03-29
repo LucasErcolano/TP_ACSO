@@ -40,6 +40,21 @@ void decode_conditional_branch(uint32_t instr, uint32_t *t, uint32_t *offset) {
     *offset = (int64_t)imm << 2;
 }
 
+void decode_lsl_lsr(uint32_t instr, bool *is_lsr, uint8_t *shift, uint8_t *rd, uint8_t *rn) {
+    uint8_t immr = (instr >> 16) & 0x3F; 
+    uint8_t imms = (instr >> 10) & 0x3F; 
+    *rn = (instr >> 5) & 0x1F;           
+    *rd = instr & 0x1F;                  
+
+    if (imms == 63) {
+        *is_lsr = true;
+        *shift = immr;     
+    } else {
+        *is_lsr = false;
+        *shift = 64 - immr; 
+    }
+}
+
 int64_t sign_extend(int64_t value, int bits) {
     int64_t mask = (int64_t)1 << (bits - 1);
     return (value ^ mask) - mask;

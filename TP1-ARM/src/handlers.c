@@ -203,20 +203,6 @@ void handle_cbnz(uint32_t instr) {
     if (CURRENT_STATE.REGS[t] != 0)
         NEXT_STATE.PC = CURRENT_STATE.PC + offset - 4;
 }
-void decode_lsl_lsr(uint32_t instr, bool *is_lsr, uint8_t *shift, uint8_t *rd, uint8_t *rn) {
-    uint8_t immr = (instr >> 16) & 0x3F; 
-    uint8_t imms = (instr >> 10) & 0x3F; 
-    *rn = (instr >> 5) & 0x1F;           
-    *rd = instr & 0x1F;                  
-
-    if (imms == 63) {
-        *is_lsr = true;
-        *shift = immr;     
-    } else {
-        *is_lsr = false;
-        *shift = 64 - immr; 
-    }
-}
 
 void handle_shift(uint32_t instr) {
     bool is_lsr;
