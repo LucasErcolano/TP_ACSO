@@ -15,6 +15,7 @@ typedef struct {
 } InstructionEntry;
 
 HashMap *opcode_map = NULL;
+int branch_taken = 0;
 
 // Inicializa el mapa de opcodes usando (longitud, opcode reducido)
 void init_opcode_map() {
@@ -72,8 +73,9 @@ void process_instruction() {
     uint32_t instr = mem_read_32(CURRENT_STATE.PC);
     InstructionHandler handler = decode_instruction(instr);
     if (handler) {
+        branch_taken = 0;
         handler(instr);
-        NEXT_STATE.PC += 4;
+        if (!branch_taken) NEXT_STATE.PC += 4;
     } else {
         printf("Unsupported instruction: 0x%08X\n", instr);
         exit(1);

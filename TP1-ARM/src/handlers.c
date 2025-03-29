@@ -5,6 +5,8 @@
 #include "decode.h"
 #include "handlers.h"
 
+extern int branch_taken;
+
 void handle_hlt(uint32_t instr) {
     RUN_BIT = 0;
 }
@@ -147,17 +149,16 @@ void handle_b_cond(uint32_t instr) {
     imm19 = sign_extend(imm19, 19);
     int64_t offset = (int64_t)imm19 << 2;
     uint32_t cond = instr & 0xF;
-    int take_branch = 0;
     switch (cond) {
-        case 0x0: if (CURRENT_STATE.FLAG_Z == 1) take_branch = 1; break;
-        case 0x1: if (CURRENT_STATE.FLAG_Z == 0) take_branch = 1; break;
-        case 0xA: if (CURRENT_STATE.FLAG_N == 0) take_branch = 1; break;
-        case 0xB: if (CURRENT_STATE.FLAG_N != 0) take_branch = 1; break;
-        case 0xC: if ((CURRENT_STATE.FLAG_Z == 0) && (CURRENT_STATE.FLAG_N == 0)) take_branch = 1; break;
-        case 0xD: if ((CURRENT_STATE.FLAG_Z == 1) || (CURRENT_STATE.FLAG_N != 0)) take_branch = 1; break;
+        case 0x0: if (CURRENT_STATE.FLAG_Z == 1) branch_taken = 1; break;
+        case 0x1: if (CURRENT_STATE.FLAG_Z == 0) branch_taken = 1; break;
+        case 0xA: if (CURRENT_STATE.FLAG_N == 0) branch_taken = 1; break;
+        case 0xB: if (CURRENT_STATE.FLAG_N != 0) branch_taken = 1; break;
+        case 0xC: if ((CURRENT_STATE.FLAG_Z == 0) && (CURRENT_STATE.FLAG_N == 0)) branch_taken = 1; break;
+        case 0xD: if ((CURRENT_STATE.FLAG_Z == 1) || (CURRENT_STATE.FLAG_N != 0)) branch_taken = 1; break;
     }
-    if (take_branch)
-        NEXT_STATE.PC = CURRENT_STATE.PC + offset - 4;
+    if (branch_taken)
+        NEXT_STATE.PC = CURRENT_STATE.PC + offset;
 }
 
 void handle_movz(uint32_t instr) {
@@ -192,15 +193,19 @@ void handle_mul(uint32_t instr) {
 void handle_cbz(uint32_t instr) {
     uint32_t t, offset;
     decode_conditional_branch(instr, &t, &offset);
-    if (CURRENT_STATE.REGS[t] == 0)
-        NEXT_STATE.PC = CURRENT_STATE.PC + offset - 4;
+    if (CURRENT_STATE.REGS[t] == 0){
+        branch_taken = 1;
+        NEXT_STATE.PC = CURRENT_STATE.PC + offset;
+    }
 }
 
 void handle_cbnz(uint32_t instr) {
     uint32_t t, offset;
     decode_conditional_branch(instr, &t, &offset);
-    if (CURRENT_STATE.REGS[t] != 0)
-        NEXT_STATE.PC = CURRENT_STATE.PC + offset - 4;
+    if (CURRENT_STATE.REGS[t] != 0) {
+        branch_taken = 1;
+        NEXT_STATE.PC = CURRENT_STATE.PC + offset;
+    }
 }
 
 void handle_shift(uint32_t instr) {
