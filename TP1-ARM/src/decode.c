@@ -19,7 +19,7 @@ void decode_r_group(uint32_t instr, uint32_t *opt, uint32_t *imm3, uint32_t *d, 
     *m = (instr >> 16) & 0x1F;
 }
 
-void decode_shifted_register(uint32_t instr, uint32_t *shift, uint32_t *imm6, uint32_t *d, uint32_t *n, uint32_t *m) {
+void decode_shifted_register(uint32_t instr, uint32_t *imm6, uint32_t *d, uint32_t *n, uint32_t *m) {
     *imm6 = (instr >> 10) & 0x3F;
     *d = instr & 0x1F;
     *n = (instr >> 5) & 0x1F;
