@@ -70,3 +70,4 @@ next_section:
     MUL X23, X24, X25
 
     HLT 0
+    
