@@ -76,12 +76,12 @@ uint64_t extend_register(uint64_t value, int option, int imm3) {
 }
 
 int64_t calculate_mathOps(uint32_t n, uint32_t m, uint32_t opt, uint32_t imm3, int isSubtraction, int isImm) {
-    uint64_t op1 = (n == 31) ? CURRENT_STATE.REGS[31] : CURRENT_STATE.REGS[n];
+    uint64_t op1 = CURRENT_STATE.REGS[n];
     uint64_t op2;
     if (isImm) {
         op2 = (opt == 1) ? (imm3 << 12) : imm3;
     } else {
-        op2 = extend_register(CURRENT_STATE.REGS[m], opt, imm3);
+        op2 = CURRENT_STATE.REGS[m];
     }
     return isSubtraction ? op1 - op2 : op1 + op2;
 }
