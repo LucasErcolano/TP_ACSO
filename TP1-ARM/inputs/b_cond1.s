@@ -1,9 +1,14 @@
 .text
+// Inicializar registros
+MOV X11, #10
+MOV X12, #20
+
 cmp X11, X11
 bne nouno
 cmp X11, X11
 beq uno
 adds X1, X0, 10
+HLT 0
 
 nouno:
 adds X5, X0, 10
@@ -39,5 +44,8 @@ adds X4, X0, 1
 cmp X12, X11
 bgt notres
 cmp X12, X11
-blt tres
+blt end
+HLT 0
+
+end:
 HLT 0
