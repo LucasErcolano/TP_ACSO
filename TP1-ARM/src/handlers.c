@@ -69,8 +69,8 @@ void handle_eor(uint32_t instr) {
 }
 
 void handle_orr(uint32_t instr) {
-    uint32_t d, n, m;
-    decode_shifted_register(instr, NULL, &d, &n, &m);
+    uint32_t imm6, d, n, m;
+    decode_shifted_register(instr, &imm6, &d, &n, &m);
     NEXT_STATE.REGS[d] = CURRENT_STATE.REGS[n] | CURRENT_STATE.REGS[m];
 }
 
