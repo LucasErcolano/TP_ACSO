@@ -1,16 +1,16 @@
 .text
-MOV X0, #0                      // Configurar registro en cero
-CBZ X0, label_cbz_zero          // Saltar si X0 es cero
-NOP                             // No debería ejecutarse si CBZ funciona correctamente
+MOV X0, #0
+CBZ X0, label_cbz_zero
+NOP
 
 label_cbz_zero:
-MOV X2, #42                     // Indicar que se tomó el salto CBZ
+MOV X2, #42
 
-MOV X1, #1                      // Configurar registro en no cero
-CBNZ X1, label_cbnz_nonzero     // Saltar si X1 no es cero
-NOP                             // No debería ejecutarse si CBNZ funciona correctamente
+MOV X1, #1
+CBNZ X1, label_cbnz_nonzero
+NOP
 
 label_cbnz_nonzero:
-MOV X3, #99                     // Indicar que se tomó el salto CBNZ
+MOV X3, #99
 
-HLT 0                           // Detener la ejecución
+HLT 0

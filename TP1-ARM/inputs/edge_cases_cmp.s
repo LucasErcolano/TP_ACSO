@@ -1,16 +1,18 @@
 .text
-CMP X0, X0                      // Comparar un registro consigo mismo
-CMP X1, #0                      // Comparar un registro con cero
+CMP X0, X0
+CMP X1, #0
 
-// Cargar el valor máximo en un registro y compararlo
-MOVZ X4, #0xFFFF, LSL #48
-MOVK X4, #0xFFFF, LSL #32
-MOVK X4, #0xFFFF, LSL #16
-MOVK X4, #0xFFFF
-CMP X2, X4                      // Comparar con el valor máximo
+MOVZ X4, #0xFFFF
+LSL X4, X4, #16
+ADD X4, X4, #0xFFFF
+LSL X4, X4, #16
+ADD X4, X4, #0xFFFF
+LSL X4, X4, #16
+ADD X4, X4, #0xFFFF
+CMP X2, X4
 
-// Cargar el valor mínimo en un registro y compararlo
-MOVZ X5, #0x8000, LSL #48
-CMP X3, X5                      // Comparar con el valor mínimo
+MOVZ X5, #0x8000
+LSL X5, X5, #48
+CMP X3, X5
 
-HLT 0                           // Detener la ejecución
+HLT 0
