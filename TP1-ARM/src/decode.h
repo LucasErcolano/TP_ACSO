@@ -12,7 +12,6 @@ void decode_conditional_branch(uint32_t instr, uint32_t *t, uint32_t *offset);
 void decode_lsl_lsr(uint32_t instr, bool *is_lsr, uint8_t *shift, uint8_t *rd, uint8_t *rn);
 
 int64_t sign_extend(int64_t value, int bits);
-uint64_t extend_register(uint64_t value, int option, int imm3);
 int64_t calculate_mathOps(uint32_t n, uint32_t m, uint32_t opt, uint32_t imm3, int isSubtraction, int isImm);
 void update_flags(int64_t result);
 

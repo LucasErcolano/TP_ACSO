@@ -169,7 +169,7 @@ void handle_add_imm(uint32_t instr) {
 void handle_add_reg(uint32_t instr) {
     uint32_t opt, imm3, d, n, m;
     decode_r_group(instr, &opt, &imm3, &d, &n, &m);
-    uint64_t res = CURRENT_STATE.REGS[n] + extend_register(CURRENT_STATE.REGS[m], opt, imm3);
+    uint64_t res = CURRENT_STATE.REGS[n] + CURRENT_STATE.REGS[m];
     NEXT_STATE.REGS[d] = res;
 }
 

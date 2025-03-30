@@ -59,22 +59,6 @@ int64_t sign_extend(int64_t value, int bits) {
     return (value ^ mask) - mask;
 }
 
-uint64_t extend_register(uint64_t value, int option, int imm3) {
-    uint64_t res;
-    switch (option) {
-        case 0: res = value & 0xFF; break;
-        case 1: res = value & 0xFFFF; break;
-        case 2: res = value & 0xFFFFFFFF; break;
-        case 3: res = value; break;
-        case 4: res = (uint64_t)(int8_t)(value & 0xFF); break;
-        case 5: res = (uint64_t)(int16_t)(value & 0xFFFF); break;
-        case 6: res = (uint64_t)(int32_t)(value & 0xFFFFFFFF); break;
-        case 7: res = value; break;
-        default: res = value; break;
-    }
-    return res << imm3;
-}
-
 int64_t calculate_mathOps(uint32_t n, uint32_t m, uint32_t opt, uint32_t imm3, int isSubtraction, int isImm) {
     uint64_t op1 = (n == 31) ? CURRENT_STATE.REGS[31] : CURRENT_STATE.REGS[n];
     uint64_t op2;
