@@ -81,8 +81,6 @@ uint8_t mem_read_8(uint64_t addr) {
 }
 
 uint16_t mem_read_16(uint64_t addr) {
-    if (addr & 0x1)
-        printf("Warning: Unaligned halfword read at 0x%" PRIx64 "\n", addr);
     uint32_t word = mem_read_32(addr & ~0x3);
     return (word >> (((addr & 0x3) / 2) * 16)) & 0xFFFF;
 }
@@ -115,8 +113,6 @@ void mem_write_8(uint64_t addr, uint8_t value) {
 }
 
 void mem_write_16(uint64_t addr, uint16_t value) {
-    if (addr & 0x1)
-        printf("Warning: Unaligned halfword write at 0x%" PRIx64 "\n", addr);
     uint64_t a = addr & ~0x3;
     uint32_t word = mem_read_32(a);
     int offset = (addr & 0x3) / 2;

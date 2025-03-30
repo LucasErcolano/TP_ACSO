@@ -33,9 +33,7 @@ void handle_subs_imm(uint32_t instr) {
     decode_i_group(instr, &imm12, &shift, &d, &n);
     uint64_t res = calculate_mathOps(n, 0, shift, imm12, 1, 1);
     update_flags(res);
-    if (d != 31) {
-        NEXT_STATE.REGS[d] = res;
-    }
+    if (d != 31) NEXT_STATE.REGS[d] = res;
 }
 
 void handle_subs_reg(uint32_t instr) {
@@ -43,9 +41,7 @@ void handle_subs_reg(uint32_t instr) {
     decode_r_group(instr, &opt, &imm3, &d, &n, &m);
     uint64_t res = calculate_mathOps(n, m, opt, imm3, 1, 0);
     update_flags(res);
-    if (d != 31) {
-        NEXT_STATE.REGS[d] = res;
-    }
+    if (d != 31) NEXT_STATE.REGS[d] = res;
 }
 
 void handle_ands(uint32_t instr) {
@@ -146,16 +142,14 @@ void handle_b_cond(uint32_t instr) {
         case 0xC: if ((CURRENT_STATE.FLAG_Z == 0) && (CURRENT_STATE.FLAG_N == 0)) branch_taken = 1; break;
         case 0xD: if ((CURRENT_STATE.FLAG_Z == 1) || (CURRENT_STATE.FLAG_N != 0)) branch_taken = 1; break;
     }
-    if (branch_taken)
-        NEXT_STATE.PC = CURRENT_STATE.PC + offset;
+    if (branch_taken)    NEXT_STATE.PC = CURRENT_STATE.PC + offset;
 }
 
 void handle_movz(uint32_t instr) {
     uint32_t d = instr & 0x1F;
     uint32_t hw = (instr >> 21) & 0x3;
     uint32_t imm16 = (instr >> 5) & 0xFFFF;
-    if (hw != 0)
-        printf("MOVZ: solo se implementa el caso hw == 0.\n");
+    if (hw != 0)    printf("MOVZ: solo se implementa el caso hw == 0.\n");
     NEXT_STATE.REGS[d] = imm16;
 }
 
