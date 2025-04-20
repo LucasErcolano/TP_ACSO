@@ -9,7 +9,7 @@
 #include <stdbool.h> // For bool type
 
 // Define USE_ASM_IMPL to 1 to enable assembly implementations, 0 for C implementations
-#define USE_ASM_IMPL 1
+#define USE_ASM_IMPL 0
 
 // Define the maximum allowed length for the result of string_proc_list_concat
 #define MAX_RESULT_LEN 1048576  // 1 MiB maximum result size
